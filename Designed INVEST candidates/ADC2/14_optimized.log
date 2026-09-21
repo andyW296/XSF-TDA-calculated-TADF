@@ -1,0 +1,898 @@
+Job started at: Mon Dec 15 12:11:58 CST 2025
+You are running Q-Chem version: 6.3.0
+
+#
+# job setting
+#
+local host:  node22
+current dir: /export/home/lizd20/zhaohw/tddft/tadf/46_IST/qchem_adc2
+input file:  14_optimized.inp
+output file: 
+nprocs     : 1
+nthreads   : 16
+#
+# qchem installation setting
+#
+QC:          /export/home/lizd20/zhaohw/software/qc63/qc63
+QCAUX:       /export/home/lizd20/zhaohw/software/qc63/qc63/qcaux
+QCPROG:      /export/home/lizd20/zhaohw/software/qc63/qc63/exe/qcprog.exe_s
+QCPROG_S:    /export/home/lizd20/zhaohw/software/qc63/qc63/exe/qcprog.exe_s
+PARALLEL:    -DSERIAL
+QCMPI:       seq
+#
+# qchem directory setting
+#
+qcrun:       qchem75241
+QCSCRATCH:   /dev/shm/qchem
+QCLOCALSCR:  
+QCTMPDIR:    /dev/shm/qchem
+QCFILEPREF:  /dev/shm/qchem/qchem75241
+QCSAVEDIR:   
+workdirs:    /dev/shm/qchem/qchem75241
+workdir0:    /dev/shm/qchem/qchem75241
+partmpdirs =  
+#
+# parallel setting
+#
+QCRSH:           ssh
+QCMPI:           seq
+QCMPIRUN:        
+QCMACHINEFILE:   /dev/shm/qchem/hostfile
+node22:16
+
+#
+# env setting
+#
+exported envs:   QC QCAUX QCSCRATCH QCRUNNAME QCFILEPREF QCPROG QCPROG_S GUIFILE
+
+Running Job 1 of 1 14_optimized.inp
+qchem 14_optimized.inp_75241.0 /dev/shm/qchem/qchem75241/ 1
+/export/home/lizd20/zhaohw/software/qc63/qc63/exe/qcprog.exe_s 14_optimized.inp_75241.0 /dev/shm/qchem/qchem75241/
+                  Welcome to Q-Chem
+     A Quantum Leap Into The Future Of Chemistry
+
+
+ Q-Chem 6.3, Q-Chem, Inc., Pleasanton, CA (2025)
+
+ E. Epifanovsky,  A. T. B. Gilbert,  Xintian Feng,  Joonho Lee,  Yuezhi Mao,  
+ N. Mardirossian,  P. Pokhilko,  A. White,  M. Wormit,  M. P. Coons,  
+ A. L. Dempwolff,  Zhengting Gan,  D. Hait,  P. R. Horn,  L. D. Jacobson,  
+ I. Kaliman,  J. Kussmann,  A. W. Lange,  Ka Un Lao,  D. S. Levine,  Jie Liu,  
+ S. C. McKenzie,  A. F. Morrison,  K. D. Nanda,  F. Plasser,  D. R. Rehn,  
+ M. L. Vidal,  Zhi-Qiang You,  Ying Zhu,  Huseyin Aksu,  B. Alam,  
+ B. Albrecht,  A. Aldossary,  E. Alguire,  J. H. Andersen,  
+ J. E. Arias-Martinez,  V. Athavale,  F. Ballesteros,  D. Barton,  K. Begam,  
+ A. Behn,  N. Bellonzi,  Y. A. Bernard,  E. J. Berquist,  H. Burton,  
+ S. Camps,  A. Carreras,  K. Carter-Fenk,  Mathew Chow,  Romit Chakraborty,  
+ Chandrima Chakravarty,  Junhan Chen,  A. D. Chien,  K. D. Closser,  
+ V. Cofer-Shabica,  L. Cunha,  S. Dasgupta,  Jia Deng,  Joseph Dickinson,  
+ M. de Wergifosse,  M. Diedenhofen,  L. B. Dittmer,  Hainam Do,  Wenjie Dou,  
+ S. Ehlert,  Po-Tung Fang,  S. Fatehi,  Qingguo Feng,  Jonathan Fetherolf,  
+ T. Friedhoff,  Thomas Froitzheim,  Sarai Folkestad,  B. Ganoe,  J. Gayvert,  
+ Qinghui Ge,  G. Gidofalvi,  M. Gimferrer,  G. Giudetti,  M. Goldey,  
+ Montgomery Gray,  J. Gomes,  C. Gonzalez-Espinoza,  S. Gulania,  A. Gunina,  
+ J. A. Gyamfi,  M. W. D. Hanson-Heine,  P. H. P. Harbach,  A. W. Hauser,  
+ M. F. Herbst,  M. Hernandez Vera,  M. Hodecker,  Z. C. Holden,  S. Houck,  
+ Xunkun Huang,  Kerwin Hui,  B. C. Huynh,  K. Ikeda,  M. Ivanov,  
+ Nayanthara K. Jayadev,  Hyunjun Ji,  Zuxin Jin,  Hanjie Jiang,  
+ Subrata Jana,  B. Kaduk,  S. Kaehler,  R. Kang,  Richard Kang,  
+ K. Khistyaev,  Jaehoon Kim,  Yongbin Kim,  P. Klunzinger,  Z. Koczor-Benda,  
+ Joong Hoon Koh,  D. Kosenkov,  Saikiran Kotaru,  L. Koulias,  T. Kowalczyk,  
+ C. M. Krauter,  K. Kue,  A. Kunitsa,  T. Kus,  A. Landau,  C. W. Lander,  
+ K. V. Lawler,  D. Lefrancois,  S. Lehtola,  Rain Li,  Shaozhi Li,  
+ Tao E. Li,  Yi-Pei Li,  Jiashu Liang,  M. Liebenthal,  Hung-Hsuan Lin,  
+ You-Sheng Lin,  Fenglai Liu,  Kuan-Yu Liu,  Xiao Liu,  M. Loipersberger,  
+ A. Luenser,  C. Malbon,  Aniket Mandal,  Manisha,  A. Manjanath,  
+ P. Manohar,  E. Mansoor,  S. F. Manzer,  Shan-Ping Mao,  A. V. Marenich,  
+ T. Markovich,  S. Mason,  F. Matz,  S. A. Maurer,  Samuel May,  
+ Alexandra McIsaac,  P. F. McLaughlin,  M. F. S. J. Menger,  J.-M. Mewes,  
+ S. A. Mewes,  R. E. Moorby,  P. Morgante,  Mohammad Mostafanejad,  
+ Madhubani Mukherjee,  J. W. Mullinax,  Quyen Nguyen,  Avik Kumar Ojha,  
+ K. J. Oosterbaan,  Eno Paenurk,  Xiaoliang Pan,  G. Paran,  V. Parravicini,  
+ R. L. Patterson,  Alexander C. Paul,  Suranjan K. Paul,  F. Pavosevic,  
+ Zheng Pei,  P. Pokhilko,  S. Prager,  E. I. Proynov,  E. Ramos,  B. Rana,  
+ A. E. Rask,  A. Rettig,  R. M. Richard,  F. Rob,  E. Rossomme,  S. Roy,  
+ T. Scheele,  M. Scheurer,  M. Schneider,  P. E. Schneider,  Tim K. Schramm,  
+ N. Sergueev,  S. M. Sharada,  Hengyuan Shen,  W. Skomorowski,  D. W. Small,  
+ C. J. Stein,  Alistair J. Sterling,  Yingli Su,  Yu-Chuan Su,  
+ E. J. Sundstrom,  J. Talbot,  J. A. Tan,  Zhen Tao,  Hung-Hsuan Teh,  
+ J. Thirman,  C. Titeca,  N. Tkachenko,  Hung-Yi Tsai,  T. Tsuchimochi,  
+ N. M. Tubman,  C. Utku,  S. P. Veccham,  O. Vydrov,  Z. Wang,  Rahel Weiss,  
+ J. Wenzel,  Jonathan Wong,  J. Witte,  H. Wu,  Yanze Wu,  A. Yamada,  
+ Chou-Hsun Yang,  Kun Yao,  S. Yeganeh,  S. R. Yost,  Qi Yu,  A. Zech,  
+ F. Zeller,  Chongxiao Zhao,  T. Zhao,  Igor Ying Zhang,  Xing Zhang,  
+ Yu Zhang,  D. Zuev,  A. Aspuru-Guzik,  A. T. Bell,  N. A. Besley,  
+ K. B. Bravaya,  B. R. Brooks,  D. Casanova,  Jeng-Da Chai,  Hsing-Ta Chen,  
+ S. Coriani,  C. J. Cramer,  A. E. DePrince, III,  R. A. DiStasio Jr.,  
+ A. Dreuw,  B. D. Dunietz,  T. R. Furlani,  W. A. Goddard III,  S. Grimme,  
+ S. Hammes-Schiffer,  T. Head-Gordon,  W. J. Hehre,  Chao-Ping Hsu,  
+ T.-C. Jagau,  Yousung Jung,  A. Klamt,  Jing Kong,  D. S. Lambrecht,  
+ Xiangyuan Li,  WanZhen Liang,  N. J. Mayhall,  C. W. McCurdy,  J. B. Neaton,  
+ T. Neudecker,  C. Ochsenfeld,  J. A. Parkhill,  R. Peverati,  
+ V. A. Rassolov,  Haisheng Ren,  Yihan Shao,  L. V. Slipchenko,  
+ R. P. Steele,  J. E. Subotnik,  A. J. W. Thom,  A. Tkatchenko,  
+ D. G. Truhlar,  T. Van Voorhis,  Fan Wang,  T. A. Wesolowski,  K. B. Whaley,  
+ H. L. Woodcock III,  P. M. Zimmerman,  S. Faraji,  P. M. W. Gill,  
+ M. Head-Gordon,  J. M. Herbert,  A. I. Krylov
+
+ Contributors to earlier versions of Q-Chem not listed above: 
+ R. D. Adamson,  B. Austin,  R. Baer,  J. Baker,  G. J. O. Beran,  
+ K. Brandhorst,  S. T. Brown,  E. F. C. Byrd,  Arup K. Chakraborty,  
+ G. K. L. Chan,  Chun-Min Chang,  Yunqing Chen,  C.-L. Cheng,  
+ Siu Hung Chien,  D. M. Chipman,  D. L. Crittenden,  H. Dachsel,  
+ R. J. Doerksen,  A. D. Dutoi,  R. G. Edgar,  J. Fosso-Tande,  
+ L. Fusti-Molnar,  D. Ghosh,  A. Ghysels,  A. Golubeva-Zadorozhnaya,  
+ J. Gonthier,  M. S. Gordon,  S. R. Gwaltney,  G. Hawkins,  J. E. Herr,  
+ A. Heyden,  S. Hirata,  E. G. Hohenstein,  G. Kedziora,  F. J. Keil,  
+ C. Kelley,  Jihan Kim,  R. A. King,  R. Z. Khaliullin,  P. P. Korambath,  
+ W. Kurlancheek,  A. Laurent,  A. M. Lee,  M. S. Lee,  S. V. Levchenko,  
+ Ching Yeh Lin,  D. Liotard,  E. Livshits,  R. C. Lochan,  I. Lotan,  
+ L. A. Martinez-Martinez,  P. E. Maslen,  N. Nair,  D. P. O'Neill,  
+ D. Neuhauser,  E. Neuscamman,  C. M. Oana,  R. Olivares-Amaya,  R. Olson,  
+ T. M. Perrine,  B. Peters,  P. A. Pieniazek,  A. Prociuk,  Y. M. Rhee,  
+ J. Ritchie,  M. A. Rohrdanz,  E. Rosta,  N. J. Russ,  H. F. Schaefer III,  
+ M. W. Schmidt,  N. E. Schultz,  S. Sharma,  N. Shenvi,  C. D. Sherrill,  
+ A. C. Simmonett,  A. Sodt,  T. Stein,  D. Stuck,  K. S. Thanthiriwatte,  
+ V. Vanovschi,  L. Vogt,  Tao Wang,  A. Warshel,  M. A. Watson,  
+ C. F. Williams,  Q. Wu,  X. Xu,  Jun Yang,  W. Zhang,  Yan Zhao
+
+   Please cite Q-Chem as follows:
+  "Software for the frontiers of quantum chemistry:
+   An overview of developments in the Q-Chem 5 package"
+   J. Chem. Phys. 155, 084801 (2021)
+   https://doi.org/10.1063/5.0055522 (open access)
+
+ Q-Chem 6.3.0 for Intel X86 EM64T Linux
+
+ Parts of Q-Chem use Armadillo 12.8.2 (Cortisol Injector).
+ http://arma.sourceforge.net/
+
+ Q-Chem begins on Mon Dec 15 12:11:58 2025  
+
+ Host: 
+0
+
+     Scratch files written to /dev/shm/qchem/qchem75241//
+ May2125 |scratch|qcdevops|jenkins|workspace|build_RNUM -1
+ Processing $rem in /export/home/lizd20/zhaohw/software/qc63/qc63/config/preferences:
+ Processing $rem in /export/home/lizd20/.qchemrc:
+
+ Checking the input file for inconsistencies... 	...done.
+
+--------------------------------------------------------------
+User input:
+--------------------------------------------------------------
+$molecule
+0 1
+P  -1.446564  -2.254584  3e-06
+C  -2.752094  -1.090488  -3e-06
+C  -2.588347  0.268844  -4e-06
+C  -1.344306  0.966757  1e-06
+N  -0.092708  0.30086  7e-06
+C  -0.032686  -1.119344  5e-06
+C  1.199415  -1.801728  -3e-06
+P  2.800239  -1.152586  -4e-06
+C  2.389218  0.518226  2e-06
+C  1.094566  1.088569  5e-06
+C  0.990988  2.501457  0.0
+C  -0.233183  3.139779  -1e-06
+C  -1.388617  2.374706  -1e-06
+H  -3.773769  -1.485224  -6e-06
+H  -3.464505  0.920615  -1.1e-05
+H  1.109388  -2.891648  -1e-05
+H  3.202897  1.246389  1e-06
+H  1.924449  3.062252  -2e-06
+H  -0.290479  4.230309  -4e-06
+H  -2.373855  2.838172  -5e-06
+$end
+
+$rem
+JOBTYPE SP
+METHOD adc(2)
+AUX_BASIS rimp2-aug-cc-pvdz
+BASIS aug-cc-pvdz
+EE_SINGLETs [3]
+EE_TRIPLETS [3]
+MEM_TOTAL 62000
+MEM_STATIC 16000
+SYMMETRY false
+SYM_IGNORE true
+$end
+--------------------------------------------------------------
+ ----------------------------------------------------------------
+             Standard Nuclear Orientation (Angstroms)
+    I     Atom           X                Y                Z
+ ----------------------------------------------------------------
+    1      P      -1.4465640000    -2.2545840000     0.0000030000
+    2      C      -2.7520940000    -1.0904880000    -0.0000030000
+    3      C      -2.5883470000     0.2688440000    -0.0000040000
+    4      C      -1.3443060000     0.9667570000     0.0000010000
+    5      N      -0.0927080000     0.3008600000     0.0000070000
+    6      C      -0.0326860000    -1.1193440000     0.0000050000
+    7      C       1.1994150000    -1.8017280000    -0.0000030000
+    8      P       2.8002390000    -1.1525860000    -0.0000040000
+    9      C       2.3892180000     0.5182260000     0.0000020000
+   10      C       1.0945660000     1.0885690000     0.0000050000
+   11      C       0.9909880000     2.5014570000     0.0000000000
+   12      C      -0.2331830000     3.1397790000    -0.0000010000
+   13      C      -1.3886170000     2.3747060000    -0.0000010000
+   14      H      -3.7737690000    -1.4852240000    -0.0000060000
+   15      H      -3.4645050000     0.9206150000    -0.0000110000
+   16      H       1.1093880000    -2.8916480000    -0.0000100000
+   17      H       3.2028970000     1.2463890000     0.0000010000
+   18      H       1.9244490000     3.0622520000    -0.0000020000
+   19      H      -0.2904790000     4.2303090000    -0.0000040000
+   20      H      -2.3738550000     2.8381720000    -0.0000050000
+ ----------------------------------------------------------------
+ Nuclear Repulsion Energy =         901.58387173 hartrees
+ There are       52 alpha and       52 beta electrons
+ Requested basis set is aug-cc-pVDZ
+ There are 156 shells and 370 basis functions
+WARNING: MEM_STATIC is adjusted to be 2000 MB!
+ Total memory of 62000 MB is distributed as follows: 
+   MEM_STATIC is set to 2000 MB
+   QALLOC/CCMAN JOB total memory use is  60000 MB
+ Warning: actual memory use might exceed 62000 MB
+
+ Total QAlloc Memory Limit  62000 MB
+ Mega-Array Size      1956 MB
+ MEM_STATIC part      2000 MB
+
+ Requested basis set is rimp2-aug-cc-pVDZ
+ There are 361 shells and 1137 basis functions
+ A cutoff of  1.0D-12 yielded  11841 shell pairs
+ There are     67203 function pairs (     77140 Cartesian)
+ Smallest overlap matrix eigenvalue = 1.97E-06
+
+ Scale SEOQF with 1.000000e-01/1.000000e-01/1.000000e-01
+
+ Standard Electronic Orientation quadrupole field applied
+ Nucleus-field energy     =     0.0000000361 hartrees
+ Guess from superposition of atomic densities
+ Warning:  Energy on first SCF cycle will be non-variational
+ SAD guess density has 104.000000 electrons
+ A restricted Hartree-Fock SCF calculation will be
+ performed using Pulay DIIS extrapolation
+ SCF converges when DIIS error is below 1.0E-08
+ using 16 threads for integral computing
+ -------------------------------------------------------
+ OpenMP Integral computing Module                
+ Release: version 1.0, May 2013, Q-Chem Inc. Pittsburgh 
+ -------------------------------------------------------
+ ---------------------------------------
+  Cycle       Energy         DIIS Error
+ ---------------------------------------
+    1   -1124.2075869687      3.44E-02
+    2   -1118.4531517896      2.75E-03
+    3   -1118.5866470604      1.76E-03
+    4   -1118.6370455940      5.66E-04
+    5   -1118.6450441158      1.13E-04
+    6   -1118.6454697458      4.55E-05
+    7   -1118.6456351499      2.66E-05
+    8   -1118.6456946571      1.23E-05
+    9   -1118.6457066221      3.31E-06
+   10   -1118.6457073880      1.26E-06
+   11   -1118.6457074650      5.36E-07
+   12   -1118.6457075017      3.19E-07
+   13   -1118.6457075231      2.44E-07
+   14   -1118.6457075458      1.58E-07
+   15   -1118.6457075562      7.36E-08
+   16   -1118.6457075582      3.44E-08
+   17   -1118.6457075584      1.28E-08
+   18   -1118.6457075583      5.29E-09 Convergence criterion met
+ ---------------------------------------
+ SCF time:  CPU 1041.21 s  wall 67.80 s
+ SCF   energy = -1118.64570756
+ Total energy = -1118.64570756
+================================================================================
+|                                                                              |
+|                                 A D C  M A N                                 |
+|                                                                              |
+ ------------------------------------------------------------------------------ 
+|                                                                              |
+| Components:                                                                  |
+|                                                                              |
+| - libvmm - 1.3-trunk                                                         |
+|   Authors:                                                                   |
+|   Evgeny Epifanovsky, Ilya Kaliman                                           |
+|                                                                              |
+| - libtensor - 2.5-trunk                                                      |
+|   Authors:                                                                   |
+|   Evgeny Epifanovsky, Michael Wormit, Dmitry Zuev, Sam Manzer,               |
+|   Ilya Kaliman                                                               |
+|                                                                              |
+| - libwfa - 1.1-trunk                                                         |
+|   Authors:                                                                   |
+|   Felix Plasser, Stefanie Mewes (Baeppler), Benjamin Thomitzni,              |
+|   Michael Wormit, Feng Chen, Anna I. Krylov, Pavel Pokhilko                  |
+|                                                                              |
+| - libadc - 1.1-trunk                                                         |
+|   Authors:                                                                   |
+|   Michael Wormit, Adrian L. Dempwolff, Philipp H. P. Harbach,                |
+|   Caroline Krauter, Dirk Rehn, Matthias Schneider, Jan Wenzel                |
+|                                                                              |
+| - adcman - 2.6-trunk                                                         |
+|   Authors:                                                                   |
+|   Michael Wormit, Adrian L. Dempwolff, Philipp H. P. Harbach,                |
+|   Caroline Krauter, Daniel Lefrancois, Jan-Michael Mewes, Dirk Rehn,         |
+|   Matthias Schneider, Jan Wenzel, Andreas Dreuw                              |
+|                                                                              |
+| Authors of earlier versions of ADCMAN:                                       |
+| Andreas Dreuw, Jan Hendrik Starcke, Dirk Rehn, Michael Wormit                |
+|                                                                              |
+================================================================================
+
+ 
+ Alpha MOs, Restricted
+ -- Occupied --                  
+-79.979 -79.919 -15.708 -11.349 -11.343 -11.338 -11.289 -11.271
+  1 A     2 A     3 A     4 A     5 A     6 A     7 A     8 A                  
+-11.252 -11.250 -11.249 -11.244 -11.241  -7.519  -7.461  -5.412
+  9 A    10 A    11 A    12 A    13 A    14 A    15 A    16 A                  
+ -5.412  -5.410  -5.355  -5.353  -5.353  -1.349  -1.145  -1.130
+ 17 A    18 A    19 A    20 A    21 A    22 A    23 A    24 A                  
+ -1.067  -1.047  -0.999  -0.905  -0.876  -0.872  -0.851  -0.745
+ 25 A    26 A    27 A    28 A    29 A    30 A    31 A    32 A                  
+ -0.726  -0.699  -0.689  -0.658  -0.633  -0.620  -0.610  -0.599
+ 33 A    34 A    35 A    36 A    37 A    38 A    39 A    40 A                  
+ -0.562  -0.555  -0.525  -0.475  -0.471  -0.469  -0.411  -0.409
+ 41 A    42 A    43 A    44 A    45 A    46 A    47 A    48 A                  
+ -0.390  -0.372  -0.336  -0.215
+ 49 A    50 A    51 A    52 A                                                  
+ -- Virtual --                   
+  0.010   0.027   0.036   0.041   0.044   0.051   0.053   0.066
+ 53 A    54 A    55 A    56 A    57 A    58 A    59 A    60 A                  
+  0.071   0.075   0.080   0.091   0.094   0.106   0.111   0.112
+ 61 A    62 A    63 A    64 A    65 A    66 A    67 A    68 A                  
+  0.114   0.119   0.125   0.127   0.134   0.136   0.140   0.142
+ 69 A    70 A    71 A    72 A    73 A    74 A    75 A    76 A                  
+  0.143   0.151   0.156   0.160   0.166   0.175   0.177   0.178
+ 77 A    78 A    79 A    80 A    81 A    82 A    83 A    84 A                  
+  0.185   0.186   0.189   0.199   0.206   0.209   0.213   0.218
+ 85 A    86 A    87 A    88 A    89 A    90 A    91 A    92 A                  
+  0.221   0.223   0.227   0.234   0.234   0.238   0.239   0.241
+ 93 A    94 A    95 A    96 A    97 A    98 A    99 A   100 A                  
+  0.251   0.251   0.278   0.289   0.295   0.299   0.303   0.304
+101 A   102 A   103 A   104 A   105 A   106 A   107 A   108 A                  
+  0.310   0.316   0.321   0.325   0.329   0.332   0.337   0.345
+109 A   110 A   111 A   112 A   113 A   114 A   115 A   116 A                  
+  0.349   0.352   0.355   0.361   0.363   0.374   0.378   0.380
+117 A   118 A   119 A   120 A   121 A   122 A   123 A   124 A                  
+  0.390   0.392   0.403   0.408   0.422   0.426   0.429   0.430
+125 A   126 A   127 A   128 A   129 A   130 A   131 A   132 A                  
+  0.433   0.443   0.443   0.449   0.461   0.467   0.470   0.475
+133 A   134 A   135 A   136 A   137 A   138 A   139 A   140 A                  
+  0.482   0.503   0.505   0.518   0.522   0.525   0.529   0.534
+141 A   142 A   143 A   144 A   145 A   146 A   147 A   148 A                  
+  0.542   0.542   0.564   0.566   0.566   0.581   0.586   0.587
+149 A   150 A   151 A   152 A   153 A   154 A   155 A   156 A                  
+  0.607   0.613   0.616   0.621   0.624   0.634   0.637   0.646
+157 A   158 A   159 A   160 A   161 A   162 A   163 A   164 A                  
+  0.654   0.662   0.665   0.670   0.680   0.682   0.692   0.693
+165 A   166 A   167 A   168 A   169 A   170 A   171 A   172 A                  
+  0.701   0.702   0.708   0.715   0.726   0.729   0.730   0.732
+173 A   174 A   175 A   176 A   177 A   178 A   179 A   180 A                  
+  0.739   0.745   0.748   0.748   0.767   0.781   0.783   0.792
+181 A   182 A   183 A   184 A   185 A   186 A   187 A   188 A                  
+  0.793   0.804   0.811   0.811   0.820   0.828   0.838   0.838
+189 A   190 A   191 A   192 A   193 A   194 A   195 A   196 A                  
+  0.841   0.847   0.851   0.867   0.870   0.877   0.881   0.883
+197 A   198 A   199 A   200 A   201 A   202 A   203 A   204 A                  
+  0.894   0.907   0.916   0.928   0.929   0.937   0.938   0.946
+205 A   206 A   207 A   208 A   209 A   210 A   211 A   212 A                  
+  0.965   0.974   0.975   0.985   0.987   1.009   1.013   1.017
+213 A   214 A   215 A   216 A   217 A   218 A   219 A   220 A                  
+  1.036   1.038   1.048   1.062   1.079   1.081   1.087   1.102
+221 A   222 A   223 A   224 A   225 A   226 A   227 A   228 A                  
+  1.107   1.109   1.131   1.137   1.144   1.145   1.171   1.180
+229 A   230 A   231 A   232 A   233 A   234 A   235 A   236 A                  
+  1.189   1.201   1.205   1.229   1.236   1.248   1.281   1.284
+237 A   238 A   239 A   240 A   241 A   242 A   243 A   244 A                  
+  1.287   1.297   1.338   1.349   1.366   1.374   1.410   1.415
+245 A   246 A   247 A   248 A   249 A   250 A   251 A   252 A                  
+  1.436   1.459   1.479   1.487   1.528   1.542   1.552   1.555
+253 A   254 A   255 A   256 A   257 A   258 A   259 A   260 A                  
+  1.589   1.592   1.596   1.617   1.633   1.640   1.646   1.656
+261 A   262 A   263 A   264 A   265 A   266 A   267 A   268 A                  
+  1.662   1.671   1.672   1.678   1.682   1.697   1.711   1.728
+269 A   270 A   271 A   272 A   273 A   274 A   275 A   276 A                  
+  1.731   1.742   1.746   1.751   1.764   1.774   1.778   1.803
+277 A   278 A   279 A   280 A   281 A   282 A   283 A   284 A                  
+  1.823   1.832   1.834   1.845   1.856   1.879   1.892   1.903
+285 A   286 A   287 A   288 A   289 A   290 A   291 A   292 A                  
+  1.922   1.930   1.952   1.956   1.968   1.982   1.997   2.004
+293 A   294 A   295 A   296 A   297 A   298 A   299 A   300 A                  
+  2.010   2.018   2.041   2.064   2.079   2.091   2.098   2.126
+301 A   302 A   303 A   304 A   305 A   306 A   307 A   308 A                  
+  2.143   2.143   2.159   2.167   2.173   2.181   2.190   2.200
+309 A   310 A   311 A   312 A   313 A   314 A   315 A   316 A                  
+  2.225   2.245   2.267   2.274   2.288   2.297   2.314   2.334
+317 A   318 A   319 A   320 A   321 A   322 A   323 A   324 A                  
+  2.340   2.348   2.362   2.367   2.373   2.384   2.423   2.439
+325 A   326 A   327 A   328 A   329 A   330 A   331 A   332 A                  
+  2.453   2.490   2.532   2.547   2.553   2.566   2.587   2.617
+333 A   334 A   335 A   336 A   337 A   338 A   339 A   340 A                  
+  2.636   2.682   2.724   2.753   2.783   2.806   2.838   2.855
+341 A   342 A   343 A   344 A   345 A   346 A   347 A   348 A                  
+  2.876   2.886   2.899   2.909   2.942   2.969   3.002   3.029
+349 A   350 A   351 A   352 A   353 A   354 A   355 A   356 A                  
+  3.121   3.161   3.177   3.191   3.247   3.326   3.382   3.440
+357 A   358 A   359 A   360 A   361 A   362 A   363 A   364 A                  
+  3.595   3.675   3.830   3.940   4.035   4.423
+365 A   366 A   367 A   368 A   369 A   370 A                                  
+ 
+ Beta MOs, Restricted
+ -- Occupied --                  
+-79.979 -79.919 -15.708 -11.349 -11.343 -11.338 -11.289 -11.271
+  1 A     2 A     3 A     4 A     5 A     6 A     7 A     8 A                  
+-11.252 -11.250 -11.249 -11.244 -11.241  -7.519  -7.461  -5.412
+  9 A    10 A    11 A    12 A    13 A    14 A    15 A    16 A                  
+ -5.412  -5.410  -5.355  -5.353  -5.353  -1.349  -1.145  -1.130
+ 17 A    18 A    19 A    20 A    21 A    22 A    23 A    24 A                  
+ -1.067  -1.047  -0.999  -0.905  -0.876  -0.872  -0.851  -0.745
+ 25 A    26 A    27 A    28 A    29 A    30 A    31 A    32 A                  
+ -0.726  -0.699  -0.689  -0.658  -0.633  -0.620  -0.610  -0.599
+ 33 A    34 A    35 A    36 A    37 A    38 A    39 A    40 A                  
+ -0.562  -0.555  -0.525  -0.475  -0.471  -0.469  -0.411  -0.409
+ 41 A    42 A    43 A    44 A    45 A    46 A    47 A    48 A                  
+ -0.390  -0.372  -0.336  -0.215
+ 49 A    50 A    51 A    52 A                                                  
+ -- Virtual --                   
+  0.010   0.027   0.036   0.041   0.044   0.051   0.053   0.066
+ 53 A    54 A    55 A    56 A    57 A    58 A    59 A    60 A                  
+  0.071   0.075   0.080   0.091   0.094   0.106   0.111   0.112
+ 61 A    62 A    63 A    64 A    65 A    66 A    67 A    68 A                  
+  0.114   0.119   0.125   0.127   0.134   0.136   0.140   0.142
+ 69 A    70 A    71 A    72 A    73 A    74 A    75 A    76 A                  
+  0.143   0.151   0.156   0.160   0.166   0.175   0.177   0.178
+ 77 A    78 A    79 A    80 A    81 A    82 A    83 A    84 A                  
+  0.185   0.186   0.189   0.199   0.206   0.209   0.213   0.218
+ 85 A    86 A    87 A    88 A    89 A    90 A    91 A    92 A                  
+  0.221   0.223   0.227   0.234   0.234   0.238   0.239   0.241
+ 93 A    94 A    95 A    96 A    97 A    98 A    99 A   100 A                  
+  0.251   0.251   0.278   0.289   0.295   0.299   0.303   0.304
+101 A   102 A   103 A   104 A   105 A   106 A   107 A   108 A                  
+  0.310   0.316   0.321   0.325   0.329   0.332   0.337   0.345
+109 A   110 A   111 A   112 A   113 A   114 A   115 A   116 A                  
+  0.349   0.352   0.355   0.361   0.363   0.374   0.378   0.380
+117 A   118 A   119 A   120 A   121 A   122 A   123 A   124 A                  
+  0.390   0.392   0.403   0.408   0.422   0.426   0.429   0.430
+125 A   126 A   127 A   128 A   129 A   130 A   131 A   132 A                  
+  0.433   0.443   0.443   0.449   0.461   0.467   0.470   0.475
+133 A   134 A   135 A   136 A   137 A   138 A   139 A   140 A                  
+  0.482   0.503   0.505   0.518   0.522   0.525   0.529   0.534
+141 A   142 A   143 A   144 A   145 A   146 A   147 A   148 A                  
+  0.542   0.542   0.564   0.566   0.566   0.581   0.586   0.587
+149 A   150 A   151 A   152 A   153 A   154 A   155 A   156 A                  
+  0.607   0.613   0.616   0.621   0.624   0.634   0.637   0.646
+157 A   158 A   159 A   160 A   161 A   162 A   163 A   164 A                  
+  0.654   0.662   0.665   0.670   0.680   0.682   0.692   0.693
+165 A   166 A   167 A   168 A   169 A   170 A   171 A   172 A                  
+  0.701   0.702   0.708   0.715   0.726   0.729   0.730   0.732
+173 A   174 A   175 A   176 A   177 A   178 A   179 A   180 A                  
+  0.739   0.745   0.748   0.748   0.767   0.781   0.783   0.792
+181 A   182 A   183 A   184 A   185 A   186 A   187 A   188 A                  
+  0.793   0.804   0.811   0.811   0.820   0.828   0.838   0.838
+189 A   190 A   191 A   192 A   193 A   194 A   195 A   196 A                  
+  0.841   0.847   0.851   0.867   0.870   0.877   0.881   0.883
+197 A   198 A   199 A   200 A   201 A   202 A   203 A   204 A                  
+  0.894   0.907   0.916   0.928   0.929   0.937   0.938   0.946
+205 A   206 A   207 A   208 A   209 A   210 A   211 A   212 A                  
+  0.965   0.974   0.975   0.985   0.987   1.009   1.013   1.017
+213 A   214 A   215 A   216 A   217 A   218 A   219 A   220 A                  
+  1.036   1.038   1.048   1.062   1.079   1.081   1.087   1.102
+221 A   222 A   223 A   224 A   225 A   226 A   227 A   228 A                  
+  1.107   1.109   1.131   1.137   1.144   1.145   1.171   1.180
+229 A   230 A   231 A   232 A   233 A   234 A   235 A   236 A                  
+  1.189   1.201   1.205   1.229   1.236   1.248   1.281   1.284
+237 A   238 A   239 A   240 A   241 A   242 A   243 A   244 A                  
+  1.287   1.297   1.338   1.349   1.366   1.374   1.410   1.415
+245 A   246 A   247 A   248 A   249 A   250 A   251 A   252 A                  
+  1.436   1.459   1.479   1.487   1.528   1.542   1.552   1.555
+253 A   254 A   255 A   256 A   257 A   258 A   259 A   260 A                  
+  1.589   1.592   1.596   1.617   1.633   1.640   1.646   1.656
+261 A   262 A   263 A   264 A   265 A   266 A   267 A   268 A                  
+  1.662   1.671   1.672   1.678   1.682   1.697   1.711   1.728
+269 A   270 A   271 A   272 A   273 A   274 A   275 A   276 A                  
+  1.731   1.742   1.746   1.751   1.764   1.774   1.778   1.803
+277 A   278 A   279 A   280 A   281 A   282 A   283 A   284 A                  
+  1.823   1.832   1.834   1.845   1.856   1.879   1.892   1.903
+285 A   286 A   287 A   288 A   289 A   290 A   291 A   292 A                  
+  1.922   1.930   1.952   1.956   1.968   1.982   1.997   2.004
+293 A   294 A   295 A   296 A   297 A   298 A   299 A   300 A                  
+  2.010   2.018   2.041   2.064   2.079   2.091   2.098   2.126
+301 A   302 A   303 A   304 A   305 A   306 A   307 A   308 A                  
+  2.143   2.143   2.159   2.167   2.173   2.181   2.190   2.200
+309 A   310 A   311 A   312 A   313 A   314 A   315 A   316 A                  
+  2.225   2.245   2.267   2.274   2.288   2.297   2.314   2.334
+317 A   318 A   319 A   320 A   321 A   322 A   323 A   324 A                  
+  2.340   2.348   2.362   2.367   2.373   2.384   2.423   2.439
+325 A   326 A   327 A   328 A   329 A   330 A   331 A   332 A                  
+  2.453   2.490   2.532   2.547   2.553   2.566   2.587   2.617
+333 A   334 A   335 A   336 A   337 A   338 A   339 A   340 A                  
+  2.636   2.682   2.724   2.753   2.783   2.806   2.838   2.855
+341 A   342 A   343 A   344 A   345 A   346 A   347 A   348 A                  
+  2.876   2.886   2.899   2.909   2.942   2.969   3.002   3.029
+349 A   350 A   351 A   352 A   353 A   354 A   355 A   356 A                  
+  3.121   3.161   3.177   3.191   3.247   3.326   3.382   3.440
+357 A   358 A   359 A   360 A   361 A   362 A   363 A   364 A                  
+  3.595   3.675   3.830   3.940   4.035   4.423
+365 A   366 A   367 A   368 A   369 A   370 A                                  
+
+--------------------------------------------------------------------------------
+                                   HF Summary                                   
+--------------------------------------------------------------------------------
+  Energy:                                                 -1118.6457075583 a.u.
+  Dip. moment [a.u.]:                  [  -0.018547,    1.631960,   -0.000007]
+  Total dipole [Debye]:                                               4.148298
+  <r^2> [a.u.]:                        [1350.997544, 1224.244251,   73.235316]
+  Total <r^2> [a.u.]:                                              2648.477112
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+                                RI-MP(2) Summary                                
+--------------------------------------------------------------------------------
+  MP energy contribution:                                   -1.8261814036 a.u.
+  Total energy:                                           -1120.4718889619 a.u.
+  Dip. moment [a.u.]:                  [  -0.166311,    1.441959,   -0.000007]
+  Total dipole [Debye]:                                               3.689391
+  <r^2> [a.u.]:                        [1351.965686, 1223.707225,   72.947421]
+  Total <r^2> [a.u.]:                                              2648.620331
+--------------------------------------------------------------------------------
+  Starting Davidson for singlet states of irrep A ... 
+--------------------------------------------------------------------------------
+   It NVec Conv  Avg. Norm  Max. Norm  Conv. states           Remark
+--------------------------------------------------------------------------------
+         3    0  2.822e-01  5.534e-01  0.2076 n n n           Guess.
+    1    6    0  1.551e-01  4.174e-01  0.0383 n n n           
+    2    9    0  3.722e-02  9.053e-02  0.0291 n n n           
+    3   12    0  2.762e-02  6.459e-02  0.0267 n n n           
+    4   15    0  1.351e-02  3.117e-02  0.0262 n n n           
+    5    6    0  6.408e-03  1.323e-02  0.0262 n n n           Subspace collapsed.
+    6    9    0  6.728e-03  1.471e-02  0.0261 n n n           
+    7   12    0  4.189e-03  9.154e-03  0.0261 n n n           
+    8   15    0  4.562e-02  1.365e-01  0.0261 n n n           
+    9    6    0  2.470e-02  7.375e-02  0.0261 n n n           Subspace collapsed.
+   10    9    0  2.031e-02  6.033e-02  0.0261 n n n           
+   11   12    0  1.082e-02  3.206e-02  0.0261 n n n           
+   12   15    0  6.474e-03  1.915e-02  0.0261 n n n           
+   13    6    0  3.911e-03  1.158e-02  0.0261 n n n           Subspace collapsed.
+   14    9    0  2.894e-03  8.566e-03  0.0261 n n n           
+   15   12    0  1.586e-03  4.707e-03  0.0261 n n n           
+   16   15    0  1.393e-03  4.140e-03  0.0261 n n n           
+   17    6    0  6.026e-04  1.790e-03  0.0261 n n n           Subspace collapsed.
+   18    9    0  4.941e-04  1.469e-03  0.0261 n n n           
+   19   12    1  2.497e-04  7.438e-04  0.0261 y n n           
+   20   15    1  2.270e-04  6.764e-04  0.0261 y n n           
+   21    6    1  1.005e-04  2.996e-04  0.0261 y n n           Subspace collapsed.
+   22    9    1  9.618e-05  2.869e-04  0.0261 y n n           
+   23   12    1  4.434e-05  1.324e-04  0.0261 y n n           
+   24   15    1  4.295e-05  1.283e-04  0.0261 y n n           
+   25    6    1  1.963e-05  5.870e-05  0.0261 y n n           Subspace collapsed.
+   26    9    1  2.097e-05  6.270e-05  0.0261 y n n           
+   27   12    1  8.475e-06  2.536e-05  0.0261 y n n           
+   28   15    1  1.006e-05  3.012e-05  0.0261 y n n           
+   29    6    2  3.875e-06  1.160e-05  0.0261 y y n           Subspace collapsed.
+   30    9    2  4.126e-06  1.235e-05  0.0261 y y n           
+   31   12    2  1.765e-06  5.286e-06  0.0261 y y n           
+   32   15    2  1.954e-06  5.851e-06  0.0261 y y n           
+   33    6    2  8.520e-07  2.553e-06  0.0261 y y n           Subspace collapsed.
+   34    9    2  9.441e-07  2.829e-06  0.0261 y y n           
+   35   12    2  3.616e-07  1.084e-06  0.0261 y y n           
+   36   15    2  4.635e-07  1.389e-06  0.0261 y y n           
+   37    6    3  1.595e-07  4.782e-07  0.0261 y y y           Converged.
+--------------------------------------------------------------------------------
+  Davidson Summary: 
+ ------------------------------------------------------------
+  State  0: excitation energy =   0.0261 a.u.   (converged)
+  State  1: excitation energy =   0.0823 a.u.   (converged)
+  State  2: excitation energy =   0.0933 a.u.   (converged)
+ ------------------------------------------------------------
+
+  Starting Davidson for triplet states of irrep A ... 
+--------------------------------------------------------------------------------
+   It NVec Conv  Avg. Norm  Max. Norm  Conv. states           Remark
+--------------------------------------------------------------------------------
+         3    0  2.781e-01  5.366e-01  0.1979 n n n           Guess.
+    1    6    0  8.447e-02  1.706e-01  0.0421 n n n           
+    2    9    0  2.653e-02  4.877e-02  0.0321 n n n           
+    3   12    0  1.992e-02  4.642e-02  0.0302 n n n           
+    4   15    0  9.222e-03  2.370e-02  0.0298 n n n           
+    5    6    0  5.337e-03  1.359e-02  0.0297 n n n           Subspace collapsed.
+    6    9    0  5.422e-03  1.515e-02  0.0296 n n n           
+    7   12    0  3.386e-03  9.468e-03  0.0296 n n n           
+    8   15    0  3.327e-03  9.688e-03  0.0296 n n n           
+    9    6    0  1.450e-03  4.056e-03  0.0296 n n n           Subspace collapsed.
+   10    9    0  1.131e-03  2.890e-03  0.0296 n n n           
+   11   12    0  4.472e-02  1.342e-01  0.0296 n n n           
+   12   15    0  2.719e-02  8.157e-02  0.0296 n n n           
+   13    6    0  1.498e-02  4.494e-02  0.0296 n n n           Subspace collapsed.
+   14    9    0  1.280e-02  3.841e-02  0.0296 n n n           
+   15   12    0  6.299e-03  1.889e-02  0.0296 n n n           
+   16   15    0  4.278e-03  1.283e-02  0.0296 n n n           
+   17    6    0  2.076e-03  6.228e-03  0.0296 n n n           Subspace collapsed.
+   18    9    0  1.613e-03  4.840e-03  0.0296 n n n           
+   19   12    0  8.058e-04  2.417e-03  0.0296 n n n           
+   20   15    0  6.232e-04  1.869e-03  0.0296 n n n           
+   21    6    1  3.288e-04  9.862e-04  0.0296 y n n           Subspace collapsed.
+   22    9    1  2.793e-04  8.378e-04  0.0296 y n n           
+   23   12    1  1.135e-04  3.404e-04  0.0296 y n n           
+   24   15    1  1.187e-04  3.561e-04  0.0296 y n n           
+   25    6    1  4.655e-05  1.396e-04  0.0296 y n n           Subspace collapsed.
+   26    9    2  4.417e-05  1.325e-04  0.0296 y y n           
+   27   12    2  2.030e-05  6.089e-05  0.0296 y y n           
+   28   15    2  1.801e-05  5.402e-05  0.0296 y y n           
+   29    6    2  8.121e-06  2.436e-05  0.0296 y y n           Subspace collapsed.
+   30    9    2  7.005e-06  2.101e-05  0.0296 y y n           
+   31   12    2  2.836e-06  8.506e-06  0.0296 y y n           
+   32   15    2  3.356e-06  1.007e-05  0.0296 y y n           
+   33    6    2  1.178e-06  3.533e-06  0.0296 y y n           Subspace collapsed.
+   34    9    2  1.178e-06  3.533e-06  0.0296 y y n           
+   35   12    2  5.496e-07  1.649e-06  0.0296 y y n           
+   36   15    2  5.014e-07  1.504e-06  0.0296 y y n           
+   37    6    3  2.326e-07  6.978e-07  0.0296 y y y           Converged.
+--------------------------------------------------------------------------------
+  Davidson Summary: 
+ ------------------------------------------------------------
+  State  0: excitation energy =   0.0296 a.u.   (converged)
+  State  1: excitation energy =   0.0537 a.u.   (converged)
+  State  2: excitation energy =   0.0746 a.u.   (converged)
+ ------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+                             Excited State Summary
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+  Excited state 1 (singlet, A)                                     [converged]
+  ----------------------------------------------------------------------------
+  Term symbol:  2 (1) A                                     R^2 =  9.01880e-12
+
+  Total energy:                                          -1120.4457860079 a.u.
+  Excitation energy:                                               0.710298 eV
+
+  Osc. strength:                                                      0.000605
+  Trans. dip. moment [a.u.]:           [  -0.185390,   -0.019193,   -0.000000]
+  <i|r^2|0> [a.u.]:                    [  -0.418010,    0.324022,    0.078612]
+
+
+  V1^2 = 0.8800, V2^2 = 0.1200
+
+  Important amplitudes:
+      occ i      occ j       vir a       vir b          v   
+    ---------------------------------------------------------
+     52 (A) A               53 (A) A                 -0.6274
+     52 (A) A               57 (A) A                  0.1653
+    ---------------------------------------------------------
+  ----------------------------------------------------------------------------
+
+
+  Excited state 2 (triplet, A)                                     [converged]
+  ----------------------------------------------------------------------------
+  Term symbol:  1 (3) A                                     R^2 =  5.08714e-11
+
+  Total energy:                                          -1120.4422628110 a.u.
+  Excitation energy:                                               0.806169 eV
+
+
+  V1^2 = 0.8935, V2^2 = 0.1065
+
+  Important amplitudes:
+      occ i      occ j       vir a       vir b          v   
+    ---------------------------------------------------------
+     52 (A) A               53 (A) A                 -0.6452
+     52 (A) A               57 (A) A                  0.1208
+    ---------------------------------------------------------
+  ----------------------------------------------------------------------------
+
+
+  Excited state 3 (triplet, A)                                     [converged]
+  ----------------------------------------------------------------------------
+  Term symbol:  2 (3) A                                     R^2 =  3.96292e-09
+
+  Total energy:                                          -1120.4181463760 a.u.
+  Excitation energy:                                               1.462410 eV
+
+
+  V1^2 = 0.9053, V2^2 = 0.0947
+
+  Important amplitudes:
+      occ i      occ j       vir a       vir b          v   
+    ---------------------------------------------------------
+     52 (A) A               57 (A) A                  0.6317
+     52 (A) A               53 (A) A                  0.1083
+    ---------------------------------------------------------
+  ----------------------------------------------------------------------------
+
+
+  Excited state 4 (triplet, A)                                     [converged]
+  ----------------------------------------------------------------------------
+  Term symbol:  3 (3) A                                     R^2 =  6.97850e-07
+
+  Total energy:                                          -1120.3972532691 a.u.
+  Excitation energy:                                               2.030940 eV
+
+
+  V1^2 = 0.8990, V2^2 = 0.1010
+
+  Important amplitudes:
+      occ i      occ j       vir a       vir b          v   
+    ---------------------------------------------------------
+     52 (A) A               61 (A) A                  0.5998
+     52 (A) A               70 (A) A                  0.1938
+    ---------------------------------------------------------
+  ----------------------------------------------------------------------------
+
+
+  Excited state 5 (singlet, A)                                     [converged]
+  ----------------------------------------------------------------------------
+  Term symbol:  3 (1) A                                     R^2 =  1.95358e-08
+
+  Total energy:                                          -1120.3895876075 a.u.
+  Excitation energy:                                               2.239534 eV
+
+  Osc. strength:                                                      0.264497
+  Trans. dip. moment [a.u.]:           [  -1.637422,   -1.462698,    0.000001]
+  <i|r^2|0> [a.u.]:                    [  -0.271801,   -0.453468,   -0.732380]
+
+
+  V1^2 = 0.8787, V2^2 = 0.1213
+
+  Important amplitudes:
+      occ i      occ j       vir a       vir b          v   
+    ---------------------------------------------------------
+     52 (A) A               57 (A) A                 -0.6117
+     52 (A) A               53 (A) A                 -0.1469
+    ---------------------------------------------------------
+  ----------------------------------------------------------------------------
+
+
+  Excited state 6 (singlet, A)                                     [converged]
+  ----------------------------------------------------------------------------
+  Term symbol:  4 (1) A                                     R^2 =  4.78232e-07
+
+  Total energy:                                          -1120.3785680384 a.u.
+  Excitation energy:                                               2.539391 eV
+
+  Osc. strength:                                                      0.139095
+  Trans. dip. moment [a.u.]:           [   0.854634,   -1.226925,    0.000002]
+  <i|r^2|0> [a.u.]:                    [  -1.113358,    3.033291,   -0.043601]
+
+
+  V1^2 = 0.8719, V2^2 = 0.1281
+
+  Important amplitudes:
+      occ i      occ j       vir a       vir b          v   
+    ---------------------------------------------------------
+     52 (A) A               61 (A) A                 -0.5885
+     52 (A) A               70 (A) A                 -0.1492
+    ---------------------------------------------------------
+  ----------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+  Time of ADC calculation:  CPU 40827.00 s  wall 3816.44 s
+================================================================================
+ 
+ --------------------------------------------------------------
+ 
+                    Orbital Energies (a.u.)
+ --------------------------------------------------------------
+ 
+ Alpha MOs
+ -- Occupied --
+-79.9786 -79.9185 -15.7079 -11.3494 -11.3435 -11.3379 -11.2886 -11.2714
+-11.2515 -11.2496 -11.2493 -11.2438 -11.2412  -7.5186  -7.4611  -5.4119
+ -5.4116  -5.4102  -5.3553  -5.3534  -5.3528  -1.3486  -1.1448  -1.1297
+ -1.0668  -1.0469  -0.9987  -0.9051  -0.8755  -0.8715  -0.8511  -0.7445
+ -0.7263  -0.6987  -0.6888  -0.6577  -0.6325  -0.6200  -0.6104  -0.5988
+ -0.5615  -0.5547  -0.5251  -0.4752  -0.4708  -0.4692  -0.4113  -0.4087
+ -0.3903  -0.3719  -0.3360  -0.2149
+ -- Virtual --
+  0.0101   0.0266   0.0359   0.0411   0.0440   0.0506   0.0527   0.0658
+  0.0708   0.0750   0.0802   0.0910   0.0943   0.1061   0.1115   0.1124
+  0.1137   0.1192   0.1254   0.1272   0.1340   0.1365   0.1404   0.1416
+  0.1430   0.1512   0.1557   0.1598   0.1664   0.1747   0.1767   0.1782
+  0.1847   0.1858   0.1888   0.1985   0.2058   0.2086   0.2131   0.2178
+  0.2212   0.2225   0.2266   0.2340   0.2341   0.2376   0.2395   0.2410
+  0.2509   0.2513   0.2776   0.2895   0.2949   0.2988   0.3029   0.3039
+  0.3104   0.3160   0.3209   0.3245   0.3292   0.3320   0.3366   0.3454
+  0.3490   0.3518   0.3552   0.3614   0.3626   0.3736   0.3776   0.3803
+  0.3899   0.3919   0.4030   0.4075   0.4219   0.4257   0.4290   0.4303
+  0.4327   0.4426   0.4433   0.4491   0.4607   0.4667   0.4702   0.4746
+  0.4817   0.5031   0.5055   0.5176   0.5220   0.5254   0.5295   0.5342
+  0.5416   0.5419   0.5638   0.5659   0.5661   0.5810   0.5859   0.5872
+  0.6066   0.6129   0.6156   0.6215   0.6239   0.6336   0.6367   0.6462
+  0.6537   0.6618   0.6646   0.6698   0.6802   0.6818   0.6921   0.6932
+  0.7010   0.7016   0.7080   0.7148   0.7255   0.7291   0.7297   0.7322
+  0.7393   0.7447   0.7477   0.7478   0.7672   0.7812   0.7829   0.7921
+  0.7929   0.8037   0.8110   0.8113   0.8203   0.8277   0.8379   0.8382
+  0.8408   0.8467   0.8514   0.8670   0.8699   0.8768   0.8810   0.8834
+  0.8937   0.9069   0.9163   0.9276   0.9290   0.9372   0.9384   0.9462
+  0.9652   0.9737   0.9751   0.9852   0.9871   1.0088   1.0129   1.0175
+  1.0360   1.0383   1.0483   1.0620   1.0793   1.0811   1.0871   1.1022
+  1.1069   1.1090   1.1314   1.1372   1.1438   1.1455   1.1707   1.1801
+  1.1891   1.2009   1.2052   1.2292   1.2364   1.2479   1.2807   1.2838
+  1.2870   1.2970   1.3378   1.3492   1.3661   1.3738   1.4097   1.4155
+  1.4360   1.4591   1.4790   1.4868   1.5280   1.5423   1.5522   1.5551
+  1.5895   1.5916   1.5958   1.6167   1.6331   1.6402   1.6465   1.6555
+  1.6621   1.6708   1.6719   1.6779   1.6815   1.6969   1.7110   1.7278
+  1.7311   1.7422   1.7459   1.7511   1.7642   1.7743   1.7777   1.8030
+  1.8231   1.8324   1.8341   1.8448   1.8560   1.8790   1.8924   1.9034
+  1.9224   1.9302   1.9524   1.9560   1.9676   1.9817   1.9971   2.0044
+  2.0099   2.0185   2.0412   2.0638   2.0787   2.0908   2.0975   2.1260
+  2.1428   2.1433   2.1588   2.1670   2.1732   2.1815   2.1904   2.1997
+  2.2250   2.2452   2.2670   2.2742   2.2884   2.2969   2.3144   2.3340
+  2.3399   2.3475   2.3619   2.3671   2.3734   2.3837   2.4225   2.4394
+  2.4531   2.4903   2.5320   2.5467   2.5531   2.5659   2.5867   2.6167
+  2.6359   2.6818   2.7241   2.7534   2.7828   2.8062   2.8383   2.8549
+  2.8759   2.8860   2.8986   2.9091   2.9419   2.9693   3.0022   3.0287
+  3.1205   3.1610   3.1770   3.1911   3.2470   3.3258   3.3821   3.4403
+  3.5947   3.6755   3.8300   3.9402   4.0345   4.4227
+ --------------------------------------------------------------
+ 
+          Ground-State Mulliken Net Atomic Charges
+
+     Atom                 Charge (a.u.)
+  ----------------------------------------
+      1 P                     0.268522
+      2 C                    -0.149959
+      3 C                     0.956888
+      4 C                     0.663889
+      5 N                    -1.357902
+      6 C                    -0.205295
+      7 C                     0.722958
+      8 P                     0.632450
+      9 C                     0.871368
+     10 C                     0.329959
+     11 C                     0.973961
+     12 C                    -0.856285
+     13 C                     1.024933
+     14 H                    -0.516962
+     15 H                    -0.620736
+     16 H                    -0.556701
+     17 H                    -0.554683
+     18 H                    -0.602884
+     19 H                    -0.411839
+     20 H                    -0.611682
+  ----------------------------------------
+  Sum of atomic charges =     0.000000
+
+ -----------------------------------------------------------------
+                    Cartesian Multipole Moments
+ -----------------------------------------------------------------
+    Charge (ESU x 10^10)
+                 0.0000
+    Dipole Moment (Debye)
+         X      -0.0471      Y       4.1480      Z      -0.0000
+       Tot       4.1483
+    Quadrupole Moments (Debye-Ang)
+        XX     -85.2273     XY      -1.7737     YY     -87.8894
+        XZ       0.0000     YZ       0.0000     ZZ     -98.5040
+    Octopole Moments (Debye-Ang^2)
+       XXX     -34.4741    XXY      15.5769    XYY       8.6337
+       YYY      65.1889    XXZ      -0.0002    XYZ      -0.0000
+       YYZ      -0.0002    XZZ       5.2362    YZZ       1.3719
+       ZZZ      -0.0000
+    Hexadecapole Moments (Debye-Ang^3)
+      XXXX   -1871.4791   XXXY      67.3937   XXYY    -600.0208
+      XYYY     -55.4616   YYYY   -1678.6904   XXXZ       0.0009
+      XXYZ      -0.0001   XYYZ       0.0002   YYYZ      -0.0001
+      XXZZ    -381.4269   XYZZ      -9.9460   YYZZ    -360.4806
+      XZZZ       0.0001   YZZZ       0.0001   ZZZZ    -134.0543
+ -----------------------------------------------------------------
+ Total job time:  3908.70s(wall), 41900.74s(cpu) 
+ Mon Dec 15 13:17:07 2025
+
+        *************************************************************
+        *                                                           *
+        *  Thank you very much for using Q-Chem.  Have a nice day.  *
+        *                                                           *
+        *************************************************************
+
+
+remove work dirs /dev/shm/qchem/qchem75241.0 -- /dev/shm/qchem/qchem75241.0
+rm -rf /dev/shm/qchem/qchem75241.0
+rm -rf /dev/shm/qchem/qchem75241
+Job finished at: Mon Dec 15 13:17:07 CST 2025
