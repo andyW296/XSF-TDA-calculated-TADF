@@ -1,0 +1,4076 @@
+#INFO: **** input file is /export/home/lizd20/zhaohw/tddft/tadf/46_IST/tda/tda.py ****
+# source /export/home/lizd20/clf/clf_jax/bin/activate
+
+from pyscf import gto, dft, scf, ao2mo, lib, tddft,fci
+from pyscf.fci import addons
+import numpy as np
+from pyscf.dft import numint
+import scipy
+from functools import reduce
+import h5py
+import time
+import sys
+#sys.path.append('/export/home/lizd20/zhaohw/tddft/')
+#from SF_XTDA import SA_SF_TDA
+
+#angles = np.arange(0,181,5)
+nstates = 5
+funs = ['b3lyp','pbe0','cam-b3lyp']
+#fun = 'b3lyp'
+def update_h5(name,sa,count,excited,vect,ground=None,ds=None):
+    fname = name + '.h5'
+    f = h5py.File(fname,'a')
+    if ground is not None:
+        f['grounds'][count] = ground
+        f['Ds'][count] = ds
+    f['vects'][sa,count] = np.array(vect)
+    f['exciteds'][sa,count] = np.array(excited)
+    f.close()
+    return None 
+def write_h5(R,nstates,name):
+    fname = name + '.h5'
+    len_r = len(R)
+    f = h5py.File(fname,'w')
+    f['R'] = R
+    f['grounds'] = np.zeros(len_r)
+    f['vects'] = np.zeros((5,len_r,nstates,5))
+    f['exciteds'] = np.zeros((5,len_r,nstates))
+    f['Ds'] = np.zeros((len_r,nstates))
+    f.close()
+    return None
+
+def read_xyz(name):
+    filename = '/export/home/lizd20/zhaohw/tddft/tadf/46_IST/xyz/'+ name
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+    atoms = []
+    for line in lines[2:]:
+        parts = line.split()
+        if len(parts) >=4:
+            atom = parts[0]
+            coords = list(map(float, parts[1:4]))
+            atoms.append((atom,coords))
+    return atoms
+mols = [str(i)+'_optimized.xyz' for i in np.arange(46)+1][:4]
+#mols = ['17_optimized.xyz','28_optimized.xyz']
+#mols = ['44_optimized.xyz']
+for fun in funs:
+    for i,mol_i in enumerate(mols):
+        atoms = read_xyz(mol_i)    
+        mol = gto.M(                 
+              atom = atoms,
+          basis = 'aug-cc-pvdz',
+          charge = 0,
+          spin = 0, 
+          verbose = 4,
+     #     symmetry=True,
+        )    
+        start = time.time()
+        if fun == 'hf':
+            mf = scf.RHF(mol)
+        else:
+            mf = dft.RKS(mol)
+            mf.xc = fun
+    #mf.grids.level = 6
+    #mf.irrep_nelec = {'A1': (4,2), 'B1':(1,1), 'B2':(1,1)}
+    #mf.level_shift = 0.2
+    #mf.grids.atom_grid = (99,590)
+    #mf = mf.newton()
+    #mf.max_cycle = 100
+    #mf.diis_damp = 0.5
+    #mf.diis_start_cycle = 3
+    #mf.init_guess = 'huckel'
+        #if fun != 'b3lyp':
+        #    data = scf.chkfile.load(f'chk_file/mol{i+1}.chk','scf')
+        #    mf.mo_coeff = data['mo_coeff']
+        #    mf.mo_occ = data['mo_occ']
+        #    mf.mo_energy = data['mo_energy']
+        #else:
+        #    mf.chkfile = f'chk_file/mol{i+1}.chk'
+        mf.kernel()
+    #mf.analyze()
+        if not mf.converged:
+            mf = mf.newton()
+            mf.kernel()
+        assert mf.converged
+        mo, _, stable, _ = mf.stability(return_status=True)
+        if stable is False:
+            dm = mf.make_rdm1(mo, mf.mo_occ)
+            mf.kernel(dm0=dm)
+            mo, _, stable, _ = mf.stability(nroots=5,tol=1e-7,return_status=True)
+            assert stable
+        
+        print(f'fun_{fun}')
+        print(mol_i,' Singlet')
+        mytd = tddft.TDA(mf)
+        mytd.nstates = nstates
+        mytd.kernel()
+        mytd.analyze()
+
+        print(mol_i,' Triplet')
+        mytd2 = tddft.TDA(mf)
+        mytd2.nstates = nstates
+        mytd2.singlet = False
+        mytd2.kernel()
+        mytd2.analyze()
+
+print('Done')
+#INFO: ******************** input file end ********************
+
+
+System: uname_result(system='Linux', node='mgmt', release='3.10.0-1160.el7.x86_64', version='#1 SMP Mon Oct 19 16:18:59 UTC 2020', machine='x86_64')  Threads 16
+Python 3.9.0 (default, Nov 15 2020, 14:28:56) 
+[GCC 7.3.0]
+numpy 1.26.4  scipy 1.13.1  h5py 3.11.0
+Date: Fri Feb 27 20:16:22 2026
+PySCF version 2.11.0
+PySCF path  /export/home/lizd20/anaconda3/envs/zhw/lib/python3.9/site-packages/pyscf
+
+[CONFIG] conf_file None
+[INPUT] verbose = 4
+[INPUT] num. atoms = 20
+[INPUT] num. electrons = 86
+[INPUT] charge = 0
+[INPUT] spin (= nelec alpha-beta = 2S) = 0
+[INPUT] symmetry False subgroup None
+[INPUT] Mole.unit = angstrom
+[INPUT] Symbol           X                Y                Z      unit          X                Y                Z       unit  Magmom
+[INPUT]  1 C      2.104057000000   1.274661000000   0.000050000000 AA    3.976091480474   2.408760191664   0.000094486306 Bohr   0.0
+[INPUT]  2 N      1.440600000000   2.448732000000  -0.000252000000 AA    2.722339455048   4.627432832458  -0.000476210983 Bohr   0.0
+[INPUT]  3 C      0.088078000000   2.457887000000   0.000051000000 AA    0.166443297599   4.644733275129   0.000096376032 Bohr   0.0
+[INPUT]  4 C     -0.735933000000   1.307833000000   0.000763000000 AA   -1.390711816030   2.471446186668   0.001441861033 Bohr   0.0
+[INPUT]  5 C     -2.152039000000   1.243466000000  -0.000195000000 AA   -4.066764319383   2.349810185208  -0.000368496594 Bohr   0.0
+[INPUT]  6 C     -2.820852000000   0.001229000000  -0.000448000000 AA   -5.330637717932   0.002322473407  -0.000846597304 Bohr   0.0
+[INPUT]  7 C     -2.153142000000  -1.241621000000   0.000156000000 AA   -4.068848687298  -2.346323640509   0.000294797275 Bohr   0.0
+[INPUT]  8 C     -0.737165000000  -1.307147000000   0.000640000000 AA   -1.393039958615  -2.470149834547   0.001209424720 Bohr   0.0
+[INPUT]  9 B     -0.004808000000   0.000002000000   0.000756000000 AA   -0.009085803207   0.000003779452   0.001428632950 Bohr   0.0
+[INPUT] 10 C      1.487618000000  -0.000679000000   0.000021000000 AA    2.811190597973  -0.001283124039   0.000039684249 Bohr   0.0
+[INPUT] 11 C      2.102941000000  -1.276497000000  -0.000289000000 AA    3.973982546119  -2.412229728829  -0.000546130850 Bohr   0.0
+[INPUT] 12 N      1.438422000000  -2.449987000000  -0.000238000000 AA    2.718223631549  -4.629804438745  -0.000449754818 Bohr   0.0
+[INPUT] 13 C      0.085910000000  -2.457932000000  -0.000084000000 AA    0.162346371361  -4.644818312804  -0.000158736994 Bohr   0.0
+[INPUT] 14 H      3.199670000000   1.379957000000   0.000399000000 AA    6.046499988987   2.607740793676   0.000754000724 Bohr   0.0
+[INPUT] 15 H     -0.348542000000   3.468416000000  -0.001354000000 AA   -0.658648922908   6.554356326059  -0.002558689173 Bohr   0.0
+[INPUT] 16 H     -2.764406000000   2.154740000000  -0.000904000000 AA   -5.223970237104   4.071868469645  -0.001708312417 Bohr   0.0
+[INPUT] 17 H     -3.913207000000   0.001707000000  -0.001195000000 AA   -7.394889498731   0.003225762495  -0.002258222719 Bohr   0.0
+[INPUT] 18 H     -2.766300000000  -2.152350000000   0.000362000000 AA   -5.227549378384  -4.067352024208   0.000684080857 Bohr   0.0
+[INPUT] 19 H      3.198447000000  -1.382827000000  -0.000728000000 AA    6.044188853937  -2.613164307654  -0.001375720619 Bohr   0.0
+[INPUT] 20 H     -0.351617000000  -3.468079000000  -0.000918000000 AA   -0.664459830741  -6.553719488355  -0.001734768582 Bohr   0.0
+
+nuclear repulsion = 674.02394762686
+number of shells = 139
+number of NR pGTOs = 532
+number of NR cGTOs = 362
+basis = aug-cc-pvdz
+ecp = {}
+CPU time:         5.23
+
+
+******** <class 'pyscf.dft.rks.RKS'> ********
+method = RKS
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-09
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/tmpaqo54hrf
+max_memory 4000 MB (current use 60 MB)
+XC library pyscf.dft.libxc version 7.0.0
+    S. Lehtola, C. Steigemann, M. J.T. Oliveira, and M. A.L. Marques.,  SoftwareX 7, 1–5 (2018)
+XC functionals = b3lyp
+    P. J. Stephens, F. J. Devlin, C. F. Chabalowski, and M. J. Frisch.,  J. Phys. Chem. 98, 11623 (1994)
+radial grids: 
+    Treutler-Ahlrichs [JCP 102, 346 (1995); DOI:10.1063/1.469408] (M4) radial grids
+    
+becke partition: Becke, JCP 88, 2547 (1988); DOI:10.1063/1.454033
+pruning grids: <function nwchem_prune at 0x7f2126ee1550>
+grids dens level: 3
+symmetrized grids: False
+atomic radii adjust function: <function treutler_atomic_radii_adjust at 0x7f2127521ca0>
+small_rho_cutoff = 1e-07
+Set gradient conv threshold to 3.16228e-05
+Initial guess from minao.
+tot grids = 251688
+init E= -521.980003626211
+  HOMO = -0.278995527512676  LUMO = -0.190989772844899
+cycle= 1 E= -519.552727775286  delta_E= 2.43  |g|= 0.629  |ddm|= 47.5
+  HOMO = -0.158586424439381  LUMO = -0.128487277936745
+cycle= 2 E= -519.430353598392  delta_E= 0.122  |g|= 0.925  |ddm|=  9.5
+  HOMO = -0.240564756362201  LUMO = -0.146412748691004
+cycle= 3 E= -519.655489806583  delta_E= -0.225  |g|= 0.122  |ddm|= 5.59
+  HOMO = -0.23926821428814  LUMO = -0.149168241980459
+cycle= 4 E= -519.656616784263  delta_E= -0.00113  |g|= 0.108  |ddm|= 1.16
+  HOMO = -0.239972529758436  LUMO = -0.14950320634746
+cycle= 5 E= -519.660160248192  delta_E= -0.00354  |g|= 0.0153  |ddm|= 0.54
+  HOMO = -0.239069935423628  LUMO = -0.148529233975299
+cycle= 6 E= -519.660208738271  delta_E= -4.85e-05  |g|= 0.00828  |ddm|= 0.131
+  HOMO = -0.23919520985815  LUMO = -0.14852283391338
+cycle= 7 E= -519.660227590225  delta_E= -1.89e-05  |g|= 0.00162  |ddm|= 0.0394
+  HOMO = -0.239279884649317  LUMO = -0.148636188071978
+cycle= 8 E= -519.660228275702  delta_E= -6.85e-07  |g|= 0.000346  |ddm|= 0.0112
+  HOMO = -0.23927827851414  LUMO = -0.148642567549077
+cycle= 9 E= -519.660228297408  delta_E= -2.17e-08  |g|= 0.00016  |ddm|= 0.00253
+  HOMO = -0.239276998014456  LUMO = -0.148633996934174
+cycle= 10 E= -519.660228303708  delta_E= -6.3e-09  |g|= 2.72e-05  |ddm|= 0.00122
+  HOMO = -0.239276648315027  LUMO = -0.148633965315152
+cycle= 11 E= -519.660228303792  delta_E= -8.34e-11  |g|= 2.04e-05  |ddm|= 0.000229
+  HOMO = -0.239275838951212  LUMO = -0.148634308665654
+Extra cycle  E= -519.660228303394  delta_E= 3.98e-10  |g|= 4.22e-05  |ddm|= 0.000286
+converged SCF energy = -519.660228303394
+rhf_internal: lowest eigs of H = [0.22510869 0.28555922 0.36795758]
+<class 'pyscf.dft.rks.RKS'> wavefunction is stable in the internal stability analysis
+fun_b3lyp
+1_optimized.xyz  Singlet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 singlet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmpaqo54hrf
+max_memory 4000 MB (current use 149 MB)
+
+
+Excited State energies (eV)
+[1.5220256  1.93115589 2.48746068 3.43240248 3.58925673]
+
+** Singlet excitation energies and oscillator strengths **
+Excited State   1:      1.52203 eV    814.60 nm  f=0.0029
+      40 -> 44        0.10226
+      43 -> 44       -0.69709
+Excited State   2:      1.93116 eV    642.02 nm  f=0.0000
+      42 -> 44        0.70414
+Excited State   3:      2.48746 eV    498.44 nm  f=0.0000
+      41 -> 44        0.70241
+Excited State   4:      3.43240 eV    361.22 nm  f=0.0000
+      38 -> 44        0.70373
+Excited State   5:      3.58926 eV    345.43 nm  f=0.1847
+      40 -> 44        0.63525
+      43 -> 45        0.25809
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.0001      0.2802      0.0000      0.0785      0.0029
+  2         0.0008      0.0002      0.0044      0.0000      0.0000
+  3        -0.0010     -0.0025      0.0000      0.0000      0.0000
+  4         0.0007      0.0008     -0.0000      0.0000      0.0000
+  5        -0.0006     -1.4491      0.0002      2.0999      0.1847
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.0000     -0.0443     -0.0000      0.0020      0.0234
+  2        -0.0001     -0.0000     -0.0021      0.0000      0.0000
+  3         0.0001      0.0003     -0.0000      0.0000      0.0000
+  4        -0.0001     -0.0001     -0.0000      0.0000      0.0000
+  5         0.0001      0.1109     -0.0000      0.0123      0.0622
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1         0.0004     -0.0001      2.1204
+  2         0.0000     -0.0779     -0.0016
+  3         0.0094      0.0001      0.0011
+  4        -0.1943      0.0002      0.0011
+  5         0.0005      0.0066      0.0995
+1_optimized.xyz  Triplet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 triplet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmpaqo54hrf
+max_memory 4000 MB (current use 250 MB)
+
+
+Excited State energies (eV)
+[1.32295681 1.85812591 2.16585727 2.32741802 2.40591768]
+
+** Triplet excitation energies and oscillator strengths **
+Excited State   1:      1.32296 eV    937.17 nm  f=0.0000
+      43 -> 44        0.70341
+Excited State   2:      1.85813 eV    667.25 nm  f=0.0000
+      42 -> 44        0.70305
+Excited State   3:      2.16586 eV    572.45 nm  f=0.0000
+      40 -> 44       -0.69868
+Excited State   4:      2.32742 eV    532.71 nm  f=0.0000
+      39 -> 44        0.70056
+Excited State   5:      2.40592 eV    515.33 nm  f=0.0000
+      41 -> 44        0.70071
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.0000      0.0000      0.0000      0.0000      0.0000
+  2         0.0000      0.0000      0.0000      0.0000      0.0000
+  3         0.0000      0.0000      0.0000      0.0000      0.0000
+  4         0.0000      0.0000      0.0000      0.0000      0.0000
+  5         0.0000      0.0000      0.0000      0.0000      0.0000
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  2        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  3        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  4        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  5        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1        -0.0000     -0.0000     -0.0000
+  2        -0.0000     -0.0000     -0.0000
+  3        -0.0000     -0.0000     -0.0000
+  4        -0.0000     -0.0000     -0.0000
+  5        -0.0000     -0.0000     -0.0000
+#INFO: **** input file is /export/home/lizd20/zhaohw/tddft/tadf/46_IST/tda/tda.py ****
+# source /export/home/lizd20/clf/clf_jax/bin/activate
+
+from pyscf import gto, dft, scf, ao2mo, lib, tddft,fci
+from pyscf.fci import addons
+import numpy as np
+from pyscf.dft import numint
+import scipy
+from functools import reduce
+import h5py
+import time
+import sys
+#sys.path.append('/export/home/lizd20/zhaohw/tddft/')
+#from SF_XTDA import SA_SF_TDA
+
+#angles = np.arange(0,181,5)
+nstates = 5
+funs = ['b3lyp','pbe0','cam-b3lyp']
+#fun = 'b3lyp'
+def update_h5(name,sa,count,excited,vect,ground=None,ds=None):
+    fname = name + '.h5'
+    f = h5py.File(fname,'a')
+    if ground is not None:
+        f['grounds'][count] = ground
+        f['Ds'][count] = ds
+    f['vects'][sa,count] = np.array(vect)
+    f['exciteds'][sa,count] = np.array(excited)
+    f.close()
+    return None 
+def write_h5(R,nstates,name):
+    fname = name + '.h5'
+    len_r = len(R)
+    f = h5py.File(fname,'w')
+    f['R'] = R
+    f['grounds'] = np.zeros(len_r)
+    f['vects'] = np.zeros((5,len_r,nstates,5))
+    f['exciteds'] = np.zeros((5,len_r,nstates))
+    f['Ds'] = np.zeros((len_r,nstates))
+    f.close()
+    return None
+
+def read_xyz(name):
+    filename = '/export/home/lizd20/zhaohw/tddft/tadf/46_IST/xyz/'+ name
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+    atoms = []
+    for line in lines[2:]:
+        parts = line.split()
+        if len(parts) >=4:
+            atom = parts[0]
+            coords = list(map(float, parts[1:4]))
+            atoms.append((atom,coords))
+    return atoms
+mols = [str(i)+'_optimized.xyz' for i in np.arange(46)+1][:4]
+#mols = ['17_optimized.xyz','28_optimized.xyz']
+#mols = ['44_optimized.xyz']
+for fun in funs:
+    for i,mol_i in enumerate(mols):
+        atoms = read_xyz(mol_i)    
+        mol = gto.M(                 
+              atom = atoms,
+          basis = 'aug-cc-pvdz',
+          charge = 0,
+          spin = 0, 
+          verbose = 4,
+     #     symmetry=True,
+        )    
+        start = time.time()
+        if fun == 'hf':
+            mf = scf.RHF(mol)
+        else:
+            mf = dft.RKS(mol)
+            mf.xc = fun
+    #mf.grids.level = 6
+    #mf.irrep_nelec = {'A1': (4,2), 'B1':(1,1), 'B2':(1,1)}
+    #mf.level_shift = 0.2
+    #mf.grids.atom_grid = (99,590)
+    #mf = mf.newton()
+    #mf.max_cycle = 100
+    #mf.diis_damp = 0.5
+    #mf.diis_start_cycle = 3
+    #mf.init_guess = 'huckel'
+        #if fun != 'b3lyp':
+        #    data = scf.chkfile.load(f'chk_file/mol{i+1}.chk','scf')
+        #    mf.mo_coeff = data['mo_coeff']
+        #    mf.mo_occ = data['mo_occ']
+        #    mf.mo_energy = data['mo_energy']
+        #else:
+        #    mf.chkfile = f'chk_file/mol{i+1}.chk'
+        mf.kernel()
+    #mf.analyze()
+        if not mf.converged:
+            mf = mf.newton()
+            mf.kernel()
+        assert mf.converged
+        mo, _, stable, _ = mf.stability(return_status=True)
+        if stable is False:
+            dm = mf.make_rdm1(mo, mf.mo_occ)
+            mf.kernel(dm0=dm)
+            mo, _, stable, _ = mf.stability(nroots=5,tol=1e-7,return_status=True)
+            assert stable
+        
+        print(f'fun_{fun}')
+        print(mol_i,' Singlet')
+        mytd = tddft.TDA(mf)
+        mytd.nstates = nstates
+        mytd.kernel()
+        mytd.analyze()
+
+        print(mol_i,' Triplet')
+        mytd2 = tddft.TDA(mf)
+        mytd2.nstates = nstates
+        mytd2.singlet = False
+        mytd2.kernel()
+        mytd2.analyze()
+
+print('Done')
+#INFO: ******************** input file end ********************
+
+
+System: uname_result(system='Linux', node='mgmt', release='3.10.0-1160.el7.x86_64', version='#1 SMP Mon Oct 19 16:18:59 UTC 2020', machine='x86_64')  Threads 16
+Python 3.9.0 (default, Nov 15 2020, 14:28:56) 
+[GCC 7.3.0]
+numpy 1.26.4  scipy 1.13.1  h5py 3.11.0
+Date: Fri Feb 27 21:04:01 2026
+PySCF version 2.11.0
+PySCF path  /export/home/lizd20/anaconda3/envs/zhw/lib/python3.9/site-packages/pyscf
+
+[CONFIG] conf_file None
+[INPUT] verbose = 4
+[INPUT] num. atoms = 20
+[INPUT] num. electrons = 102
+[INPUT] charge = 0
+[INPUT] spin (= nelec alpha-beta = 2S) = 0
+[INPUT] symmetry False subgroup None
+[INPUT] Mole.unit = angstrom
+[INPUT] Symbol           X                Y                Z      unit          X                Y                Z       unit  Magmom
+[INPUT]  1 C      2.553158000000  -1.223881000000   0.000000000000 AA    4.824769372742  -2.312799899059   0.000000000000 Bohr   0.0
+[INPUT]  2 C      3.235434000000   0.001261000000   0.000001000000 AA    6.114084154106   0.002382944643   0.000001889726 Bohr   0.0
+[INPUT]  3 C      2.551676000000   1.225638000000   0.000000000000 AA    4.821968798626   2.316120147860   0.000000000000 Bohr   0.0
+[INPUT]  4 C      1.135288000000   1.302960000000   0.000001000000 AA    2.145383392505   2.462237551263   0.000001889726 Bohr   0.0
+[INPUT]  5 B      0.339345000000  -0.000185000000   0.000006000000 AA    0.641269111741  -0.000349599333   0.000011338357 Bohr   0.0
+[INPUT]  6 C      1.137135000000  -1.301990000000  -0.000001000000 AA    2.148873716657  -2.460404516922  -0.000001889726 Bohr   0.0
+[INPUT]  7 C      0.491733000000  -2.564586000000  -0.000005000000 AA    0.929240696411  -4.846365162894  -0.000009448631 Bohr   0.0
+[INPUT]  8 C     -0.893796000000  -2.748134000000  -0.000003000000 AA   -1.689029651232  -5.193220613605  -0.000005669178 Bohr   0.0
+[INPUT]  9 P     -2.124485000000  -1.497144000000   0.000003000000 AA   -4.014694805747  -2.829192129036   0.000005669178 Bohr   0.0
+[INPUT] 10 C     -1.180326000000  -0.000528000000   0.000003000000 AA   -2.230492877703  -0.000997775394   0.000005669178 Bohr   0.0
+[INPUT] 11 P     -2.125502000000   1.495602000000  -0.000002000000 AA   -4.016616657215   2.826278171352  -0.000003779452 Bohr   0.0
+[INPUT] 12 C     -0.895704000000   2.747519000000  -0.000001000000 AA   -1.692635248677   5.192058432039  -0.000001889726 Bohr   0.0
+[INPUT] 13 C      0.489853000000   2.565067000000  -0.000001000000 AA    0.925688011297   4.847274121160  -0.000001889726 Bohr   0.0
+[INPUT] 14 H      3.147990000000  -2.146606000000   0.000001000000 AA    5.948838942870  -4.056497437348   0.000001889726 Bohr   0.0
+[INPUT] 15 H      4.327545000000   0.002144000000   0.000002000000 AA    8.177874841731   0.004051572811   0.000003779452 Bohr   0.0
+[INPUT] 16 H      3.145707000000   2.148939000000  -0.000003000000 AA    5.944524698127   4.060906168397  -0.000005669178 Bohr   0.0
+[INPUT] 17 H      1.118352000000  -3.468723000000  -0.000007000000 AA    2.113378990860  -6.554936471980  -0.000013228083 Bohr   0.0
+[INPUT] 18 H     -1.272943000000  -3.775322000000  -0.000004000000 AA   -2.405513642182  -7.134324612045  -0.000007558904 Bohr   0.0
+[INPUT] 19 H     -1.276275000000   3.774191000000  -0.000002000000 AA   -2.411810209629   7.132187331798  -0.000003779452 Bohr   0.0
+[INPUT] 20 H      1.116002000000   3.469465000000  -0.000001000000 AA    2.108938134467   6.556338648764  -0.000001889726 Bohr   0.0
+
+nuclear repulsion = 848.037918177854
+number of shells = 139
+number of NR pGTOs = 562
+number of NR cGTOs = 370
+basis = aug-cc-pvdz
+ecp = {}
+CPU time:     43338.43
+
+
+******** <class 'pyscf.dft.rks.RKS'> ********
+method = RKS
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-09
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/tmp_uyk5lkn
+max_memory 4000 MB (current use 245 MB)
+XC library pyscf.dft.libxc version 7.0.0
+    S. Lehtola, C. Steigemann, M. J.T. Oliveira, and M. A.L. Marques.,  SoftwareX 7, 1–5 (2018)
+XC functionals = b3lyp
+    P. J. Stephens, F. J. Devlin, C. F. Chabalowski, and M. J. Frisch.,  J. Phys. Chem. 98, 11623 (1994)
+radial grids: 
+    Treutler-Ahlrichs [JCP 102, 346 (1995); DOI:10.1063/1.469408] (M4) radial grids
+    
+becke partition: Becke, JCP 88, 2547 (1988); DOI:10.1063/1.454033
+pruning grids: <function nwchem_prune at 0x7f2126ee1550>
+grids dens level: 3
+symmetrized grids: False
+atomic radii adjust function: <function treutler_atomic_radii_adjust at 0x7f2127521ca0>
+small_rho_cutoff = 1e-07
+Set gradient conv threshold to 3.16228e-05
+Initial guess from minao.
+tot grids = 262248
+init E= -1095.00302915785
+  HOMO = -0.26355179156628  LUMO = -0.194628981417696
+cycle= 1 E= -1092.77056794864  delta_E= 2.23  |g|= 0.645  |ddm|= 74.2
+  HOMO = -0.12609525331665  LUMO = -0.112571321964224
+cycle= 2 E= -1092.41229857991  delta_E= 0.358  |g|= 1.23  |ddm|= 13.9
+  HOMO = -0.219196696852126  LUMO = -0.140287057785479
+cycle= 3 E= -1092.87457538373  delta_E= -0.462  |g|= 0.209  |ddm|= 7.51
+  HOMO = -0.221494486038758  LUMO = -0.146793714183039
+cycle= 4 E= -1092.88630050602  delta_E= -0.0117  |g|= 0.129  |ddm|= 1.76
+  HOMO = -0.221660541885151  LUMO = -0.14695647196274
+cycle= 5 E= -1092.89155011305  delta_E= -0.00525  |g|= 0.0423  |ddm|= 0.754
+  HOMO = -0.220387422499042  LUMO = -0.145870534016316
+cycle= 6 E= -1092.89198851659  delta_E= -0.000438  |g|= 0.0156  |ddm|= 0.427
+  HOMO = -0.220391623063101  LUMO = -0.145113405109958
+cycle= 7 E= -1092.89206079937  delta_E= -7.23e-05  |g|= 0.00432  |ddm|= 0.211
+  HOMO = -0.220537972826233  LUMO = -0.145291751457881
+cycle= 8 E= -1092.89206635392  delta_E= -5.55e-06  |g|= 0.00138  |ddm|= 0.0362
+  HOMO = -0.220556100727416  LUMO = -0.145332401772945
+cycle= 9 E= -1092.89206687217  delta_E= -5.18e-07  |g|= 0.000332  |ddm|= 0.00996
+  HOMO = -0.220552898822544  LUMO = -0.145317892859952
+cycle= 10 E= -1092.89206690079  delta_E= -2.86e-08  |g|= 0.000159  |ddm|= 0.00498
+  HOMO = -0.220552994406607  LUMO = -0.145315037185932
+cycle= 11 E= -1092.89206690686  delta_E= -6.07e-09  |g|= 4.16e-05  |ddm|= 0.00133
+  HOMO = -0.2205484591228  LUMO = -0.145314607953553
+cycle= 12 E= -1092.89206690718  delta_E= -3.19e-10  |g|= 2.82e-05  |ddm|= 0.000313
+  HOMO = -0.220554327594081  LUMO = -0.145316814968636
+Extra cycle  E= -1092.8920669064  delta_E= 7.78e-10  |g|= 5.8e-05  |ddm|= 0.000522
+converged SCF energy = -1092.8920669064
+rhf_internal: lowest eigs of H = [0.1854818  0.33399084 0.4204363 ]
+<class 'pyscf.dft.rks.RKS'> wavefunction is stable in the internal stability analysis
+fun_b3lyp
+2_optimized.xyz  Singlet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 singlet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmp_uyk5lkn
+max_memory 4000 MB (current use 245 MB)
+
+
+Excited State energies (eV)
+[1.23361982 2.18110982 2.7873262  2.99397655 3.26977193]
+
+** Singlet excitation energies and oscillator strengths **
+Excited State   1:      1.23362 eV   1005.04 nm  f=0.0021
+      51 -> 52        0.69873
+Excited State   2:      2.18111 eV    568.45 nm  f=0.0000
+      49 -> 52        0.70526
+Excited State   3:      2.78733 eV    444.81 nm  f=0.0043
+      46 -> 52        0.14012
+      47 -> 52        0.69142
+Excited State   4:      2.99398 eV    414.11 nm  f=0.1229
+      50 -> 52       -0.62106
+      51 -> 53        0.31215
+Excited State   5:      3.26977 eV    379.18 nm  f=0.0043
+      46 -> 52       -0.69069
+      47 -> 52        0.13827
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.0002      0.2648     -0.0000      0.0701      0.0021
+  2        -0.0000     -0.0000     -0.0003      0.0000      0.0000
+  3         0.0000     -0.0000     -0.2500      0.0625      0.0043
+  4         1.2944      0.0007      0.0000      1.6754      0.1229
+  5         0.0000     -0.0002     -0.2330      0.0543      0.0043
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.0000     -0.0354      0.0000      0.0012      0.0184
+  2         0.0000      0.0000      0.0000      0.0000      0.0000
+  3        -0.0000      0.0000      0.0264      0.0007      0.0045
+  4        -0.1415     -0.0001     -0.0000      0.0200      0.1212
+  5        -0.0000      0.0000      0.0270      0.0007      0.0040
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1        -0.0000      0.0000     -1.9443
+  2         0.0036      0.0003      0.0000
+  3        -0.0000      0.4054     -0.0000
+  4         0.0000     -0.0000     -0.0003
+  5        -0.0005      0.4424     -0.0000
+2_optimized.xyz  Triplet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 triplet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmp_uyk5lkn
+max_memory 4000 MB (current use 222 MB)
+
+
+Excited State energies (eV)
+[0.99324177 1.79747885 1.84404016 2.08021914 2.39452272]
+
+** Triplet excitation energies and oscillator strengths **
+Excited State   1:      0.99324 eV   1248.28 nm  f=0.0000
+      51 -> 52        0.70415
+Excited State   2:      1.79748 eV    689.77 nm  f=0.0000
+      50 -> 52       -0.69958
+Excited State   3:      1.84404 eV    672.35 nm  f=0.0000
+      49 -> 52        0.69699
+Excited State   4:      2.08022 eV    596.02 nm  f=0.0000
+      48 -> 52        0.70139
+Excited State   5:      2.39452 eV    517.78 nm  f=0.0000
+      46 -> 52        0.12619
+      47 -> 52       -0.67691
+      49 -> 53        0.12042
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.0000      0.0000      0.0000      0.0000      0.0000
+  2         0.0000      0.0000      0.0000      0.0000      0.0000
+  3         0.0000      0.0000      0.0000      0.0000      0.0000
+  4         0.0000      0.0000      0.0000      0.0000      0.0000
+  5         0.0000      0.0000      0.0000      0.0000      0.0000
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  2        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  3        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  4        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  5        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1        -0.0000     -0.0000     -0.0000
+  2        -0.0000     -0.0000     -0.0000
+  3        -0.0000     -0.0000     -0.0000
+  4        -0.0000     -0.0000     -0.0000
+  5        -0.0000     -0.0000     -0.0000
+#INFO: **** input file is /export/home/lizd20/zhaohw/tddft/tadf/46_IST/tda/tda.py ****
+# source /export/home/lizd20/clf/clf_jax/bin/activate
+
+from pyscf import gto, dft, scf, ao2mo, lib, tddft,fci
+from pyscf.fci import addons
+import numpy as np
+from pyscf.dft import numint
+import scipy
+from functools import reduce
+import h5py
+import time
+import sys
+#sys.path.append('/export/home/lizd20/zhaohw/tddft/')
+#from SF_XTDA import SA_SF_TDA
+
+#angles = np.arange(0,181,5)
+nstates = 5
+funs = ['b3lyp','pbe0','cam-b3lyp']
+#fun = 'b3lyp'
+def update_h5(name,sa,count,excited,vect,ground=None,ds=None):
+    fname = name + '.h5'
+    f = h5py.File(fname,'a')
+    if ground is not None:
+        f['grounds'][count] = ground
+        f['Ds'][count] = ds
+    f['vects'][sa,count] = np.array(vect)
+    f['exciteds'][sa,count] = np.array(excited)
+    f.close()
+    return None 
+def write_h5(R,nstates,name):
+    fname = name + '.h5'
+    len_r = len(R)
+    f = h5py.File(fname,'w')
+    f['R'] = R
+    f['grounds'] = np.zeros(len_r)
+    f['vects'] = np.zeros((5,len_r,nstates,5))
+    f['exciteds'] = np.zeros((5,len_r,nstates))
+    f['Ds'] = np.zeros((len_r,nstates))
+    f.close()
+    return None
+
+def read_xyz(name):
+    filename = '/export/home/lizd20/zhaohw/tddft/tadf/46_IST/xyz/'+ name
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+    atoms = []
+    for line in lines[2:]:
+        parts = line.split()
+        if len(parts) >=4:
+            atom = parts[0]
+            coords = list(map(float, parts[1:4]))
+            atoms.append((atom,coords))
+    return atoms
+mols = [str(i)+'_optimized.xyz' for i in np.arange(46)+1][:4]
+#mols = ['17_optimized.xyz','28_optimized.xyz']
+#mols = ['44_optimized.xyz']
+for fun in funs:
+    for i,mol_i in enumerate(mols):
+        atoms = read_xyz(mol_i)    
+        mol = gto.M(                 
+              atom = atoms,
+          basis = 'aug-cc-pvdz',
+          charge = 0,
+          spin = 0, 
+          verbose = 4,
+     #     symmetry=True,
+        )    
+        start = time.time()
+        if fun == 'hf':
+            mf = scf.RHF(mol)
+        else:
+            mf = dft.RKS(mol)
+            mf.xc = fun
+    #mf.grids.level = 6
+    #mf.irrep_nelec = {'A1': (4,2), 'B1':(1,1), 'B2':(1,1)}
+    #mf.level_shift = 0.2
+    #mf.grids.atom_grid = (99,590)
+    #mf = mf.newton()
+    #mf.max_cycle = 100
+    #mf.diis_damp = 0.5
+    #mf.diis_start_cycle = 3
+    #mf.init_guess = 'huckel'
+        #if fun != 'b3lyp':
+        #    data = scf.chkfile.load(f'chk_file/mol{i+1}.chk','scf')
+        #    mf.mo_coeff = data['mo_coeff']
+        #    mf.mo_occ = data['mo_occ']
+        #    mf.mo_energy = data['mo_energy']
+        #else:
+        #    mf.chkfile = f'chk_file/mol{i+1}.chk'
+        mf.kernel()
+    #mf.analyze()
+        if not mf.converged:
+            mf = mf.newton()
+            mf.kernel()
+        assert mf.converged
+        mo, _, stable, _ = mf.stability(return_status=True)
+        if stable is False:
+            dm = mf.make_rdm1(mo, mf.mo_occ)
+            mf.kernel(dm0=dm)
+            mo, _, stable, _ = mf.stability(nroots=5,tol=1e-7,return_status=True)
+            assert stable
+        
+        print(f'fun_{fun}')
+        print(mol_i,' Singlet')
+        mytd = tddft.TDA(mf)
+        mytd.nstates = nstates
+        mytd.kernel()
+        mytd.analyze()
+
+        print(mol_i,' Triplet')
+        mytd2 = tddft.TDA(mf)
+        mytd2.nstates = nstates
+        mytd2.singlet = False
+        mytd2.kernel()
+        mytd2.analyze()
+
+print('Done')
+#INFO: ******************** input file end ********************
+
+
+System: uname_result(system='Linux', node='mgmt', release='3.10.0-1160.el7.x86_64', version='#1 SMP Mon Oct 19 16:18:59 UTC 2020', machine='x86_64')  Threads 16
+Python 3.9.0 (default, Nov 15 2020, 14:28:56) 
+[GCC 7.3.0]
+numpy 1.26.4  scipy 1.13.1  h5py 3.11.0
+Date: Fri Feb 27 21:58:28 2026
+PySCF version 2.11.0
+PySCF path  /export/home/lizd20/anaconda3/envs/zhw/lib/python3.9/site-packages/pyscf
+
+[CONFIG] conf_file None
+[INPUT] verbose = 4
+[INPUT] num. atoms = 17
+[INPUT] num. electrons = 126
+[INPUT] charge = 0
+[INPUT] spin (= nelec alpha-beta = 2S) = 0
+[INPUT] symmetry False subgroup None
+[INPUT] Mole.unit = angstrom
+[INPUT] Symbol           X                Y                Z      unit          X                Y                Z       unit  Magmom
+[INPUT]  1 P      1.114276000000   2.496599000000  -0.002003000000 AA    2.105676467176   4.717888352863  -0.003785121428 Bohr   0.0
+[INPUT]  2 P      3.033970000000   1.544870000000   0.002339000000 AA    5.733372370147   2.919381198057   0.004420069405 Bohr   0.0
+[INPUT]  3 C      2.664267000000  -0.172655000000   0.001607000000 AA    5.034734952717  -0.326270664037   0.003036789882 Bohr   0.0
+[INPUT]  4 C      1.450361000000  -0.910481000000   0.000111000000 AA    2.740785071750  -1.720559731620   0.000209759600 Bohr   0.0
+[INPUT]  5 C      1.633787000000  -2.318951000000  -0.000163000000 AA    3.087409975875  -4.382182286286  -0.000308025358 Bohr   0.0
+[INPUT]  6 P      0.434582000000  -3.601831000000  -0.001062000000 AA    0.821240958666  -6.806474136968  -0.002006889144 Bohr   0.0
+[INPUT]  7 C     -1.034678000000  -2.642145000000  -0.000713000000 AA   -1.955258047113  -4.992930431389  -0.001347374727 Bohr   0.0
+[INPUT]  8 C     -1.191667000000  -1.229699000000   0.000025000000 AA   -2.251924261682  -2.323794325652   0.000047243153 Bohr   0.0
+[INPUT]  9 B      0.033617000000  -0.277886000000  -0.000655000000 AA    0.063526923130  -0.525128433851  -0.001237770612 Bohr   0.0
+[INPUT] 10 C     -0.150354000000   1.246182000000  -0.002134000000 AA   -0.284127881733   2.354942681363  -0.004032675550 Bohr   0.0
+[INPUT] 11 P     -1.677670000000   2.160033000000  -0.001908000000 AA   -3.170336827399   4.081870790023  -0.003605597446 Bohr   0.0
+[INPUT] 12 P     -3.313827000000   0.779378000000   0.002850000000 AA   -6.262225454189   1.472810967511   0.005385719455 Bohr   0.0
+[INPUT] 13 C     -2.545518000000  -0.802094000000   0.000868000000 AA   -4.810331865151  -1.515737986157   0.001640282276 Bohr   0.0
+[INPUT] 14 H      3.583028000000  -0.780958000000   0.002876000000 AA    6.770941616648  -1.475796734788   0.005434852334 Bohr   0.0
+[INPUT] 15 H      2.671726000000  -2.682910000000  -0.000157000000 AA    5.048830419880  -5.069965116857  -0.000296687002 Bohr   0.0
+[INPUT] 16 H     -1.956412000000  -3.242232000000  -0.000853000000 AA   -3.697082866813  -6.126930512301  -0.001611936384 Bohr   0.0
+[INPUT] 17 H     -3.293581000000  -1.611142000000   0.000550000000 AA   -6.223966059071  -3.044617127784   0.001039349369 Bohr   0.0
+
+nuclear repulsion = 1148.07754180996
+number of shells = 124
+number of NR pGTOs = 574
+number of NR cGTOs = 355
+basis = aug-cc-pvdz
+ecp = {}
+CPU time:     93197.03
+
+
+******** <class 'pyscf.dft.rks.RKS'> ********
+method = RKS
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-09
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/tmp6py817jv
+max_memory 4000 MB (current use 222 MB)
+XC library pyscf.dft.libxc version 7.0.0
+    S. Lehtola, C. Steigemann, M. J.T. Oliveira, and M. A.L. Marques.,  SoftwareX 7, 1–5 (2018)
+XC functionals = b3lyp
+    P. J. Stephens, F. J. Devlin, C. F. Chabalowski, and M. J. Frisch.,  J. Phys. Chem. 98, 11623 (1994)
+radial grids: 
+    Treutler-Ahlrichs [JCP 102, 346 (1995); DOI:10.1063/1.469408] (M4) radial grids
+    
+becke partition: Becke, JCP 88, 2547 (1988); DOI:10.1063/1.454033
+pruning grids: <function nwchem_prune at 0x7f2126ee1550>
+grids dens level: 3
+symmetrized grids: False
+atomic radii adjust function: <function treutler_atomic_radii_adjust at 0x7f2127521ca0>
+small_rho_cutoff = 1e-07
+Set gradient conv threshold to 3.16228e-05
+Initial guess from minao.
+tot grids = 248008
+init E= -2002.80648312032
+  HOMO = -0.250228290259106  LUMO = -0.203877636705278
+cycle= 1 E= -2000.76984335379  delta_E= 2.04  |g|= 0.493  |ddm|= 33.5
+  HOMO = -0.183088288934171  LUMO = -0.147994590347242
+cycle= 2 E= -2000.47265252272  delta_E= 0.297  |g|= 1.06  |ddm|= 6.47
+  HOMO = -0.232507794569843  LUMO = -0.169573584264954
+cycle= 3 E= -2000.83228770755  delta_E= -0.36  |g|= 0.151  |ddm|= 3.17
+  HOMO = -0.235068742913147  LUMO = -0.170954805703186
+cycle= 4 E= -2000.83608188796  delta_E= -0.00379  |g|= 0.123  |ddm|= 0.744
+  HOMO = -0.234291639345346  LUMO = -0.170151251429873
+cycle= 5 E= -2000.84153408619  delta_E= -0.00545  |g|= 0.0366  |ddm|= 0.384
+  HOMO = -0.233483405711545  LUMO = -0.170372393247034
+cycle= 6 E= -2000.84190447405  delta_E= -0.00037  |g|= 0.0167  |ddm|= 0.153
+  HOMO = -0.233556976287635  LUMO = -0.169773397753764
+cycle= 7 E= -2000.84200561436  delta_E= -0.000101  |g|= 0.00319  |ddm|= 0.0577
+  HOMO = -0.233667698347594  LUMO = -0.169831170491367
+cycle= 8 E= -2000.84200819781  delta_E= -2.58e-06  |g|= 0.00161  |ddm|= 0.0163
+  HOMO = -0.23368368865237  LUMO = -0.16985989087406
+cycle= 9 E= -2000.84200891041  delta_E= -7.13e-07  |g|= 0.000258  |ddm|= 0.00664
+  HOMO = -0.233671001939735  LUMO = -0.169837870555874
+cycle= 10 E= -2000.84200893515  delta_E= -2.47e-08  |g|= 6.77e-05  |ddm|= 0.00178
+  HOMO = -0.233674290792276  LUMO = -0.169843379445315
+cycle= 11 E= -2000.84200893637  delta_E= -1.22e-09  |g|= 3.03e-05  |ddm|= 0.000573
+  HOMO = -0.233673117479598  LUMO = -0.16984134188532
+cycle= 12 E= -2000.84200893663  delta_E= -2.63e-10  |g|= 1.81e-05  |ddm|= 0.000164
+  HOMO = -0.233673303284372  LUMO = -0.16984214725357
+Extra cycle  E= -2000.84200893592  delta_E= 7.06e-10  |g|= 4.71e-05  |ddm|= 0.000217
+converged SCF energy = -2000.84200893592
+rhf_internal: lowest eigs of H = [0.15041761 0.2406266  0.30740624]
+<class 'pyscf.dft.rks.RKS'> wavefunction is stable in the internal stability analysis
+fun_b3lyp
+3_optimized.xyz  Singlet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 singlet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmp6py817jv
+max_memory 4000 MB (current use 225 MB)
+
+
+Excited State energies (eV)
+[0.99820222 1.59290829 1.90051518 2.37095983 2.40628685]
+
+** Singlet excitation energies and oscillator strengths **
+Excited State   1:      0.99820 eV   1242.07 nm  f=0.0016
+      63 -> 64       -0.69976
+Excited State   2:      1.59291 eV    778.35 nm  f=0.0003
+      62 -> 64       -0.70429
+Excited State   3:      1.90052 eV    652.37 nm  f=0.0000
+      60 -> 64       -0.70450
+Excited State   4:      2.37096 eV    522.93 nm  f=0.0000
+      58 -> 64       -0.70168
+Excited State   5:      2.40629 eV    515.25 nm  f=0.0025
+      57 -> 64       -0.70356
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.2556     -0.0301      0.0000      0.0663      0.0016
+  2         0.0014     -0.0004     -0.0867      0.0075      0.0003
+  3        -0.0033     -0.0000      0.0004      0.0000      0.0000
+  4        -0.0022     -0.0028     -0.0022      0.0000      0.0000
+  5        -0.0002      0.0038      0.2039      0.0416      0.0025
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.0357      0.0041     -0.0000      0.0013      0.0235
+  2        -0.0002      0.0002      0.0174      0.0003      0.0034
+  3         0.0004     -0.0000     -0.0001      0.0000      0.0000
+  4         0.0002      0.0004      0.0002      0.0000      0.0000
+  5         0.0000     -0.0007     -0.0234      0.0005      0.0041
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1        -0.0001      0.0007      1.6855
+  2         0.2526      0.0305     -0.0017
+  3        -0.0284      0.2195      0.0024
+  4        -0.0060      0.0969      0.0006
+  5        -0.4302     -0.0509      0.0001
+3_optimized.xyz  Triplet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 triplet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmp6py817jv
+max_memory 4000 MB (current use 225 MB)
+
+
+Excited State energies (eV)
+[0.75718661 1.38159549 1.49084503 1.62138591 1.76011239]
+
+** Triplet excitation energies and oscillator strengths **
+Excited State   1:      0.75719 eV   1637.43 nm  f=0.0000
+      63 -> 64       -0.70407
+Excited State   2:      1.38160 eV    897.40 nm  f=0.0000
+      57 -> 64       -0.10699
+      62 -> 64        0.68770
+Excited State   3:      1.49085 eV    831.64 nm  f=0.0000
+      61 -> 64       -0.69802
+Excited State   4:      1.62139 eV    764.68 nm  f=0.0000
+      60 -> 64       -0.69079
+Excited State   5:      1.76011 eV    704.41 nm  f=0.0000
+      59 -> 64       -0.69742
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.0000      0.0000      0.0000      0.0000      0.0000
+  2         0.0000      0.0000      0.0000      0.0000      0.0000
+  3         0.0000      0.0000      0.0000      0.0000      0.0000
+  4         0.0000      0.0000      0.0000      0.0000      0.0000
+  5         0.0000      0.0000      0.0000      0.0000      0.0000
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  2        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  3        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  4        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  5        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1        -0.0000     -0.0000     -0.0000
+  2        -0.0000     -0.0000     -0.0000
+  3        -0.0000     -0.0000     -0.0000
+  4        -0.0000     -0.0000     -0.0000
+  5        -0.0000     -0.0000     -0.0000
+#INFO: **** input file is /export/home/lizd20/zhaohw/tddft/tadf/46_IST/tda/tda.py ****
+# source /export/home/lizd20/clf/clf_jax/bin/activate
+
+from pyscf import gto, dft, scf, ao2mo, lib, tddft,fci
+from pyscf.fci import addons
+import numpy as np
+from pyscf.dft import numint
+import scipy
+from functools import reduce
+import h5py
+import time
+import sys
+#sys.path.append('/export/home/lizd20/zhaohw/tddft/')
+#from SF_XTDA import SA_SF_TDA
+
+#angles = np.arange(0,181,5)
+nstates = 5
+funs = ['b3lyp','pbe0','cam-b3lyp']
+#fun = 'b3lyp'
+def update_h5(name,sa,count,excited,vect,ground=None,ds=None):
+    fname = name + '.h5'
+    f = h5py.File(fname,'a')
+    if ground is not None:
+        f['grounds'][count] = ground
+        f['Ds'][count] = ds
+    f['vects'][sa,count] = np.array(vect)
+    f['exciteds'][sa,count] = np.array(excited)
+    f.close()
+    return None 
+def write_h5(R,nstates,name):
+    fname = name + '.h5'
+    len_r = len(R)
+    f = h5py.File(fname,'w')
+    f['R'] = R
+    f['grounds'] = np.zeros(len_r)
+    f['vects'] = np.zeros((5,len_r,nstates,5))
+    f['exciteds'] = np.zeros((5,len_r,nstates))
+    f['Ds'] = np.zeros((len_r,nstates))
+    f.close()
+    return None
+
+def read_xyz(name):
+    filename = '/export/home/lizd20/zhaohw/tddft/tadf/46_IST/xyz/'+ name
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+    atoms = []
+    for line in lines[2:]:
+        parts = line.split()
+        if len(parts) >=4:
+            atom = parts[0]
+            coords = list(map(float, parts[1:4]))
+            atoms.append((atom,coords))
+    return atoms
+mols = [str(i)+'_optimized.xyz' for i in np.arange(46)+1][:4]
+#mols = ['17_optimized.xyz','28_optimized.xyz']
+#mols = ['44_optimized.xyz']
+for fun in funs:
+    for i,mol_i in enumerate(mols):
+        atoms = read_xyz(mol_i)    
+        mol = gto.M(                 
+              atom = atoms,
+          basis = 'aug-cc-pvdz',
+          charge = 0,
+          spin = 0, 
+          verbose = 4,
+     #     symmetry=True,
+        )    
+        start = time.time()
+        if fun == 'hf':
+            mf = scf.RHF(mol)
+        else:
+            mf = dft.RKS(mol)
+            mf.xc = fun
+    #mf.grids.level = 6
+    #mf.irrep_nelec = {'A1': (4,2), 'B1':(1,1), 'B2':(1,1)}
+    #mf.level_shift = 0.2
+    #mf.grids.atom_grid = (99,590)
+    #mf = mf.newton()
+    #mf.max_cycle = 100
+    #mf.diis_damp = 0.5
+    #mf.diis_start_cycle = 3
+    #mf.init_guess = 'huckel'
+        #if fun != 'b3lyp':
+        #    data = scf.chkfile.load(f'chk_file/mol{i+1}.chk','scf')
+        #    mf.mo_coeff = data['mo_coeff']
+        #    mf.mo_occ = data['mo_occ']
+        #    mf.mo_energy = data['mo_energy']
+        #else:
+        #    mf.chkfile = f'chk_file/mol{i+1}.chk'
+        mf.kernel()
+    #mf.analyze()
+        if not mf.converged:
+            mf = mf.newton()
+            mf.kernel()
+        assert mf.converged
+        mo, _, stable, _ = mf.stability(return_status=True)
+        if stable is False:
+            dm = mf.make_rdm1(mo, mf.mo_occ)
+            mf.kernel(dm0=dm)
+            mo, _, stable, _ = mf.stability(nroots=5,tol=1e-7,return_status=True)
+            assert stable
+        
+        print(f'fun_{fun}')
+        print(mol_i,' Singlet')
+        mytd = tddft.TDA(mf)
+        mytd.nstates = nstates
+        mytd.kernel()
+        mytd.analyze()
+
+        print(mol_i,' Triplet')
+        mytd2 = tddft.TDA(mf)
+        mytd2.nstates = nstates
+        mytd2.singlet = False
+        mytd2.kernel()
+        mytd2.analyze()
+
+print('Done')
+#INFO: ******************** input file end ********************
+
+
+System: uname_result(system='Linux', node='mgmt', release='3.10.0-1160.el7.x86_64', version='#1 SMP Mon Oct 19 16:18:59 UTC 2020', machine='x86_64')  Threads 16
+Python 3.9.0 (default, Nov 15 2020, 14:28:56) 
+[GCC 7.3.0]
+numpy 1.26.4  scipy 1.13.1  h5py 3.11.0
+Date: Fri Feb 27 22:48:43 2026
+PySCF version 2.11.0
+PySCF path  /export/home/lizd20/anaconda3/envs/zhw/lib/python3.9/site-packages/pyscf
+
+[CONFIG] conf_file None
+[INPUT] verbose = 4
+[INPUT] num. atoms = 21
+[INPUT] num. electrons = 86
+[INPUT] charge = 0
+[INPUT] spin (= nelec alpha-beta = 2S) = 0
+[INPUT] symmetry False subgroup None
+[INPUT] Mole.unit = angstrom
+[INPUT] Symbol           X                Y                Z      unit          X                Y                Z       unit  Magmom
+[INPUT]  1 C     -1.167685000000   2.170478000000   0.000325000000 AA   -2.206604849763   4.101608979394   0.000614160990 Bohr   0.0
+[INPUT]  2 N     -0.003361000000   2.853290000000  -0.000045000000 AA   -0.006351369505   5.391936653960  -0.000085037676 Bohr   0.0
+[INPUT]  3 C      1.162593000000   2.173362000000  -0.000377000000 AA    2.196982364336   4.107058949537  -0.000712426749 Bohr   0.0
+[INPUT]  4 C      1.287372000000   0.763230000000   0.000138000000 AA    2.432780500434   1.442295670052   0.000260782205 Bohr   0.0
+[INPUT]  5 B      0.000020000000  -0.005642000000   0.000094000000 AA    0.000037794522  -0.010661834795   0.000177634256 Bohr   0.0
+[INPUT]  6 C     -1.289223000000   0.760090000000  -0.000159000000 AA   -2.436278383490   1.436361930021  -0.000300466454 Bohr   0.0
+[INPUT]  7 C     -2.491908000000   0.007678000000   0.000099000000 AA   -4.709023647613   0.014509317184   0.000187082886 Bohr   0.0
+[INPUT]  8 C     -2.463249000000  -1.399643000000  -0.000160000000 AA   -4.654865986609  -2.644941942165  -0.000302356180 Bohr   0.0
+[INPUT]  9 C     -1.265167000000  -2.145960000000  -0.000226000000 AA   -2.390819131838  -4.055276674272  -0.000427078104 Bohr   0.0
+[INPUT] 10 C      0.001903000000  -1.511698000000   0.000177000000 AA    0.003596148815  -2.856695203053   0.000334481524 Bohr   0.0
+[INPUT] 11 C      1.270282000000  -2.143200000000   0.000302000000 AA    2.400485080965  -4.050061030168   0.000570697290 Bohr   0.0
+[INPUT] 12 C      2.466529000000  -1.393976000000   0.000064000000 AA    4.661064288297  -2.634232864217   0.000120942472 Bohr   0.0
+[INPUT] 13 C      2.491743000000   0.013459000000  -0.000105000000 AA    4.708711842802   0.025433823911  -0.000198421243 Bohr   0.0
+[INPUT] 14 H     -2.061796000000   2.813229000000   0.001577000000 AA   -3.896229764724   5.316232335684   0.002980098098 Bohr   0.0
+[INPUT] 15 H      2.055098000000   2.818320000000  -0.001211000000 AA    3.883572379141   5.325852931384  -0.002288458337 Bohr   0.0
+[INPUT] 16 H     -3.471778000000   0.503178000000  -0.000040000000 AA   -6.560709585290   0.950868611906  -0.000075589045 Bohr   0.0
+[INPUT] 17 H     -3.411917000000  -1.941227000000  -0.000325000000 AA   -6.447588689748  -3.668387375611  -0.000614160990 Bohr   0.0
+[INPUT] 18 H     -1.346699000000  -3.241193000000  -0.001286000000 AA   -2.544892282226  -6.124967086857  -0.002430187796 Bohr   0.0
+[INPUT] 19 H      1.354399000000  -3.238215000000   0.000575000000 AA    2.559443173385  -6.119339482458   0.001086592522 Bohr   0.0
+[INPUT] 20 H      3.416552000000  -1.933175000000   0.000218000000 AA    6.456347570335  -3.653171300856   0.000411960295 Bohr   0.0
+[INPUT] 21 H      3.470427000000   0.511339000000  -0.000126000000 AA    6.558156565296   0.966290666809  -0.000238105492 Bohr   0.0
+
+nuclear repulsion = 670.000632196805
+number of shells = 144
+number of NR pGTOs = 543
+number of NR cGTOs = 371
+basis = aug-cc-pvdz
+ecp = {}
+CPU time:    138805.23
+
+
+******** <class 'pyscf.dft.rks.RKS'> ********
+method = RKS
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-09
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/tmph9rso3nw
+max_memory 4000 MB (current use 286 MB)
+XC library pyscf.dft.libxc version 7.0.0
+    S. Lehtola, C. Steigemann, M. J.T. Oliveira, and M. A.L. Marques.,  SoftwareX 7, 1–5 (2018)
+XC functionals = b3lyp
+    P. J. Stephens, F. J. Devlin, C. F. Chabalowski, and M. J. Frisch.,  J. Phys. Chem. 98, 11623 (1994)
+radial grids: 
+    Treutler-Ahlrichs [JCP 102, 346 (1995); DOI:10.1063/1.469408] (M4) radial grids
+    
+becke partition: Becke, JCP 88, 2547 (1988); DOI:10.1063/1.454033
+pruning grids: <function nwchem_prune at 0x7f2126ee1550>
+grids dens level: 3
+symmetrized grids: False
+atomic radii adjust function: <function treutler_atomic_radii_adjust at 0x7f2127521ca0>
+small_rho_cutoff = 1e-07
+Set gradient conv threshold to 3.16228e-05
+Initial guess from minao.
+tot grids = 261712
+init E= -505.865402665402
+  HOMO = -0.269338556558887  LUMO = -0.193700264499413
+cycle= 1 E= -503.514194489767  delta_E= 2.35  |g|= 0.616  |ddm|= 61.1
+  HOMO = -0.132491740136645  LUMO = -0.105556005564459
+cycle= 2 E= -503.37511410964  delta_E= 0.139  |g|= 0.936  |ddm|= 11.6
+  HOMO = -0.220058255699375  LUMO = -0.13616873487965
+cycle= 3 E= -503.615948868517  delta_E= -0.241  |g|= 0.141  |ddm|= 6.39
+  HOMO = -0.221722608962013  LUMO = -0.140300135039644
+cycle= 4 E= -503.61811250291  delta_E= -0.00216  |g|= 0.115  |ddm|= 1.19
+  HOMO = -0.221417158981054  LUMO = -0.140609690596745
+cycle= 5 E= -503.622074464374  delta_E= -0.00396  |g|= 0.0271  |ddm|= 0.639
+  HOMO = -0.220451081838987  LUMO = -0.139506859483802
+cycle= 6 E= -503.622262137522  delta_E= -0.000188  |g|= 0.0114  |ddm|= 0.228
+  HOMO = -0.220323650262687  LUMO = -0.139146465957301
+cycle= 7 E= -503.622298785873  delta_E= -3.66e-05  |g|= 0.00305  |ddm|= 0.0685
+  HOMO = -0.22045258147574  LUMO = -0.139307311922625
+cycle= 8 E= -503.622301018147  delta_E= -2.23e-06  |g|= 0.000595  |ddm|= 0.0167
+  HOMO = -0.220461065726616  LUMO = -0.139336761201747
+cycle= 9 E= -503.622301097683  delta_E= -7.95e-08  |g|= 0.000179  |ddm|= 0.00451
+  HOMO = -0.220459744468864  LUMO = -0.139325743573263
+cycle= 10 E= -503.622301104851  delta_E= -7.17e-09  |g|= 8.84e-05  |ddm|= 0.00252
+  HOMO = -0.220460024455341  LUMO = -0.13932475504252
+cycle= 11 E= -503.622301107007  delta_E= -2.16e-09  |g|= 2.3e-05  |ddm|= 0.000652
+  HOMO = -0.220458597955832  LUMO = -0.139324406597873
+cycle= 12 E= -503.622301107129  delta_E= -1.21e-10  |g|= 7.36e-06  |ddm|= 0.000184
+  HOMO = -0.220459520479993  LUMO = -0.139324585348183
+Extra cycle  E= -503.622301107098  delta_E= 3.09e-11  |g|= 1.31e-05  |ddm|= 0.000123
+converged SCF energy = -503.622301107098
+rhf_internal: lowest eigs of H = [0.19088036 0.32185143 0.47618524]
+<class 'pyscf.dft.rks.RKS'> wavefunction is stable in the internal stability analysis
+fun_b3lyp
+4_optimized.xyz  Singlet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 singlet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmph9rso3nw
+max_memory 4000 MB (current use 226 MB)
+
+
+Excited State energies (eV)
+[1.28244775 2.1769668  3.21751193 3.46968845 3.56002827]
+
+** Singlet excitation energies and oscillator strengths **
+Excited State   1:      1.28245 eV    966.78 nm  f=0.0024
+      43 -> 44        0.70112
+Excited State   2:      2.17697 eV    569.53 nm  f=0.0000
+      42 -> 44       -0.70395
+Excited State   3:      3.21751 eV    385.34 nm  f=0.0000
+      39 -> 44       -0.70584
+Excited State   4:      3.46969 eV    357.34 nm  f=0.1764
+      41 -> 44       -0.63304
+      43 -> 45       -0.28204
+Excited State   5:      3.56003 eV    348.27 nm  f=0.0000
+      38 -> 44       -0.70465
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.2740     -0.0003      0.0000      0.0751      0.0024
+  2         0.0002     -0.0022     -0.0000      0.0000      0.0000
+  3        -0.0011      0.0019     -0.0079      0.0001      0.0000
+  4         0.0018     -1.4407      0.0001      2.0755      0.1764
+  5        -0.0036      0.0047     -0.0000      0.0000      0.0000
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.0438      0.0001     -0.0000      0.0019      0.0271
+  2        -0.0000      0.0003      0.0000      0.0000      0.0000
+  3         0.0001     -0.0002      0.0027      0.0000      0.0000
+  4        -0.0001      0.1212     -0.0000      0.0147      0.0768
+  5         0.0003     -0.0004      0.0000      0.0000      0.0000
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1        -0.0001      0.0000      2.0791
+  2         0.0001     -0.0521     -0.0001
+  3         0.1309      0.0004      0.0008
+  4         0.0002     -0.0008     -0.0001
+  5         0.0005     -0.2023     -0.0002
+4_optimized.xyz  Triplet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 triplet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmph9rso3nw
+max_memory 4000 MB (current use 226 MB)
+
+
+Excited State energies (eV)
+[1.08305887 1.99836482 2.10065779 2.27599291 3.12262267]
+
+** Triplet excitation energies and oscillator strengths **
+Excited State   1:      1.08306 eV   1144.76 nm  f=0.0000
+      43 -> 44       -0.70512
+Excited State   2:      1.99836 eV    620.43 nm  f=0.0000
+      41 -> 44        0.70129
+Excited State   3:      2.10066 eV    590.22 nm  f=0.0000
+      42 -> 44        0.70272
+Excited State   4:      2.27599 eV    544.75 nm  f=0.0000
+      40 -> 44        0.70071
+Excited State   5:      3.12262 eV    397.05 nm  f=0.0000
+      39 -> 44       -0.70480
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.0000      0.0000      0.0000      0.0000      0.0000
+  2         0.0000      0.0000      0.0000      0.0000      0.0000
+  3         0.0000      0.0000      0.0000      0.0000      0.0000
+  4         0.0000      0.0000      0.0000      0.0000      0.0000
+  5         0.0000      0.0000      0.0000      0.0000      0.0000
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  2        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  3        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  4        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  5        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1        -0.0000     -0.0000     -0.0000
+  2        -0.0000     -0.0000     -0.0000
+  3        -0.0000     -0.0000     -0.0000
+  4        -0.0000     -0.0000     -0.0000
+  5        -0.0000     -0.0000     -0.0000
+#INFO: **** input file is /export/home/lizd20/zhaohw/tddft/tadf/46_IST/tda/tda.py ****
+# source /export/home/lizd20/clf/clf_jax/bin/activate
+
+from pyscf import gto, dft, scf, ao2mo, lib, tddft,fci
+from pyscf.fci import addons
+import numpy as np
+from pyscf.dft import numint
+import scipy
+from functools import reduce
+import h5py
+import time
+import sys
+#sys.path.append('/export/home/lizd20/zhaohw/tddft/')
+#from SF_XTDA import SA_SF_TDA
+
+#angles = np.arange(0,181,5)
+nstates = 5
+funs = ['b3lyp','pbe0','cam-b3lyp']
+#fun = 'b3lyp'
+def update_h5(name,sa,count,excited,vect,ground=None,ds=None):
+    fname = name + '.h5'
+    f = h5py.File(fname,'a')
+    if ground is not None:
+        f['grounds'][count] = ground
+        f['Ds'][count] = ds
+    f['vects'][sa,count] = np.array(vect)
+    f['exciteds'][sa,count] = np.array(excited)
+    f.close()
+    return None 
+def write_h5(R,nstates,name):
+    fname = name + '.h5'
+    len_r = len(R)
+    f = h5py.File(fname,'w')
+    f['R'] = R
+    f['grounds'] = np.zeros(len_r)
+    f['vects'] = np.zeros((5,len_r,nstates,5))
+    f['exciteds'] = np.zeros((5,len_r,nstates))
+    f['Ds'] = np.zeros((len_r,nstates))
+    f.close()
+    return None
+
+def read_xyz(name):
+    filename = '/export/home/lizd20/zhaohw/tddft/tadf/46_IST/xyz/'+ name
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+    atoms = []
+    for line in lines[2:]:
+        parts = line.split()
+        if len(parts) >=4:
+            atom = parts[0]
+            coords = list(map(float, parts[1:4]))
+            atoms.append((atom,coords))
+    return atoms
+mols = [str(i)+'_optimized.xyz' for i in np.arange(46)+1][:4]
+#mols = ['17_optimized.xyz','28_optimized.xyz']
+#mols = ['44_optimized.xyz']
+for fun in funs:
+    for i,mol_i in enumerate(mols):
+        atoms = read_xyz(mol_i)    
+        mol = gto.M(                 
+              atom = atoms,
+          basis = 'aug-cc-pvdz',
+          charge = 0,
+          spin = 0, 
+          verbose = 4,
+     #     symmetry=True,
+        )    
+        start = time.time()
+        if fun == 'hf':
+            mf = scf.RHF(mol)
+        else:
+            mf = dft.RKS(mol)
+            mf.xc = fun
+    #mf.grids.level = 6
+    #mf.irrep_nelec = {'A1': (4,2), 'B1':(1,1), 'B2':(1,1)}
+    #mf.level_shift = 0.2
+    #mf.grids.atom_grid = (99,590)
+    #mf = mf.newton()
+    #mf.max_cycle = 100
+    #mf.diis_damp = 0.5
+    #mf.diis_start_cycle = 3
+    #mf.init_guess = 'huckel'
+        #if fun != 'b3lyp':
+        #    data = scf.chkfile.load(f'chk_file/mol{i+1}.chk','scf')
+        #    mf.mo_coeff = data['mo_coeff']
+        #    mf.mo_occ = data['mo_occ']
+        #    mf.mo_energy = data['mo_energy']
+        #else:
+        #    mf.chkfile = f'chk_file/mol{i+1}.chk'
+        mf.kernel()
+    #mf.analyze()
+        if not mf.converged:
+            mf = mf.newton()
+            mf.kernel()
+        assert mf.converged
+        mo, _, stable, _ = mf.stability(return_status=True)
+        if stable is False:
+            dm = mf.make_rdm1(mo, mf.mo_occ)
+            mf.kernel(dm0=dm)
+            mo, _, stable, _ = mf.stability(nroots=5,tol=1e-7,return_status=True)
+            assert stable
+        
+        print(f'fun_{fun}')
+        print(mol_i,' Singlet')
+        mytd = tddft.TDA(mf)
+        mytd.nstates = nstates
+        mytd.kernel()
+        mytd.analyze()
+
+        print(mol_i,' Triplet')
+        mytd2 = tddft.TDA(mf)
+        mytd2.nstates = nstates
+        mytd2.singlet = False
+        mytd2.kernel()
+        mytd2.analyze()
+
+print('Done')
+#INFO: ******************** input file end ********************
+
+
+System: uname_result(system='Linux', node='mgmt', release='3.10.0-1160.el7.x86_64', version='#1 SMP Mon Oct 19 16:18:59 UTC 2020', machine='x86_64')  Threads 16
+Python 3.9.0 (default, Nov 15 2020, 14:28:56) 
+[GCC 7.3.0]
+numpy 1.26.4  scipy 1.13.1  h5py 3.11.0
+Date: Fri Feb 27 23:42:41 2026
+PySCF version 2.11.0
+PySCF path  /export/home/lizd20/anaconda3/envs/zhw/lib/python3.9/site-packages/pyscf
+
+[CONFIG] conf_file None
+[INPUT] verbose = 4
+[INPUT] num. atoms = 20
+[INPUT] num. electrons = 86
+[INPUT] charge = 0
+[INPUT] spin (= nelec alpha-beta = 2S) = 0
+[INPUT] symmetry False subgroup None
+[INPUT] Mole.unit = angstrom
+[INPUT] Symbol           X                Y                Z      unit          X                Y                Z       unit  Magmom
+[INPUT]  1 C      2.104057000000   1.274661000000   0.000050000000 AA    3.976091480474   2.408760191664   0.000094486306 Bohr   0.0
+[INPUT]  2 N      1.440600000000   2.448732000000  -0.000252000000 AA    2.722339455048   4.627432832458  -0.000476210983 Bohr   0.0
+[INPUT]  3 C      0.088078000000   2.457887000000   0.000051000000 AA    0.166443297599   4.644733275129   0.000096376032 Bohr   0.0
+[INPUT]  4 C     -0.735933000000   1.307833000000   0.000763000000 AA   -1.390711816030   2.471446186668   0.001441861033 Bohr   0.0
+[INPUT]  5 C     -2.152039000000   1.243466000000  -0.000195000000 AA   -4.066764319383   2.349810185208  -0.000368496594 Bohr   0.0
+[INPUT]  6 C     -2.820852000000   0.001229000000  -0.000448000000 AA   -5.330637717932   0.002322473407  -0.000846597304 Bohr   0.0
+[INPUT]  7 C     -2.153142000000  -1.241621000000   0.000156000000 AA   -4.068848687298  -2.346323640509   0.000294797275 Bohr   0.0
+[INPUT]  8 C     -0.737165000000  -1.307147000000   0.000640000000 AA   -1.393039958615  -2.470149834547   0.001209424720 Bohr   0.0
+[INPUT]  9 B     -0.004808000000   0.000002000000   0.000756000000 AA   -0.009085803207   0.000003779452   0.001428632950 Bohr   0.0
+[INPUT] 10 C      1.487618000000  -0.000679000000   0.000021000000 AA    2.811190597973  -0.001283124039   0.000039684249 Bohr   0.0
+[INPUT] 11 C      2.102941000000  -1.276497000000  -0.000289000000 AA    3.973982546119  -2.412229728829  -0.000546130850 Bohr   0.0
+[INPUT] 12 N      1.438422000000  -2.449987000000  -0.000238000000 AA    2.718223631549  -4.629804438745  -0.000449754818 Bohr   0.0
+[INPUT] 13 C      0.085910000000  -2.457932000000  -0.000084000000 AA    0.162346371361  -4.644818312804  -0.000158736994 Bohr   0.0
+[INPUT] 14 H      3.199670000000   1.379957000000   0.000399000000 AA    6.046499988987   2.607740793676   0.000754000724 Bohr   0.0
+[INPUT] 15 H     -0.348542000000   3.468416000000  -0.001354000000 AA   -0.658648922908   6.554356326059  -0.002558689173 Bohr   0.0
+[INPUT] 16 H     -2.764406000000   2.154740000000  -0.000904000000 AA   -5.223970237104   4.071868469645  -0.001708312417 Bohr   0.0
+[INPUT] 17 H     -3.913207000000   0.001707000000  -0.001195000000 AA   -7.394889498731   0.003225762495  -0.002258222719 Bohr   0.0
+[INPUT] 18 H     -2.766300000000  -2.152350000000   0.000362000000 AA   -5.227549378384  -4.067352024208   0.000684080857 Bohr   0.0
+[INPUT] 19 H      3.198447000000  -1.382827000000  -0.000728000000 AA    6.044188853937  -2.613164307654  -0.001375720619 Bohr   0.0
+[INPUT] 20 H     -0.351617000000  -3.468079000000  -0.000918000000 AA   -0.664459830741  -6.553719488355  -0.001734768582 Bohr   0.0
+
+nuclear repulsion = 674.02394762686
+number of shells = 139
+number of NR pGTOs = 532
+number of NR cGTOs = 362
+basis = aug-cc-pvdz
+ecp = {}
+CPU time:    188092.60
+
+
+******** <class 'pyscf.dft.rks.RKS'> ********
+method = RKS
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-09
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/tmpfoplzxv2
+max_memory 4000 MB (current use 251 MB)
+XC library pyscf.dft.libxc version 7.0.0
+    S. Lehtola, C. Steigemann, M. J.T. Oliveira, and M. A.L. Marques.,  SoftwareX 7, 1–5 (2018)
+XC functionals = pbe0
+    C. Adamo and V. Barone.,  J. Chem. Phys. 110, 6158 (1999)
+    M. Ernzerhof and G. E. Scuseria.,  J. Chem. Phys. 110, 5029 (1999)
+radial grids: 
+    Treutler-Ahlrichs [JCP 102, 346 (1995); DOI:10.1063/1.469408] (M4) radial grids
+    
+becke partition: Becke, JCP 88, 2547 (1988); DOI:10.1063/1.454033
+pruning grids: <function nwchem_prune at 0x7f2126ee1550>
+grids dens level: 3
+symmetrized grids: False
+atomic radii adjust function: <function treutler_atomic_radii_adjust at 0x7f2127521ca0>
+small_rho_cutoff = 1e-07
+Set gradient conv threshold to 3.16228e-05
+Initial guess from minao.
+tot grids = 251688
+init E= -521.505953229198
+  HOMO = -0.279755151296766  LUMO = -0.188495998515292
+cycle= 1 E= -518.953893644328  delta_E= 2.55  |g|= 0.589  |ddm|= 31.4
+  HOMO = -0.174149747160321  LUMO = -0.130713554970781
+cycle= 2 E= -518.870051594197  delta_E= 0.0838  |g|= 0.815  |ddm|= 6.99
+  HOMO = -0.247725426189231  LUMO = -0.143241325202914
+cycle= 3 E= -519.045692824898  delta_E= -0.176  |g|= 0.102  |ddm|= 4.06
+  HOMO = -0.246054650651853  LUMO = -0.144454900466514
+cycle= 4 E= -519.046471016021  delta_E= -0.000778  |g|= 0.0899  |ddm|= 0.782
+  HOMO = -0.246946204788072  LUMO = -0.145040590398322
+cycle= 5 E= -519.048832170911  delta_E= -0.00236  |g|= 0.0122  |ddm|= 0.357
+  HOMO = -0.246338983761353  LUMO = -0.144545403455734
+cycle= 6 E= -519.048859896786  delta_E= -2.77e-05  |g|= 0.00711  |ddm|= 0.086
+  HOMO = -0.24639454394679  LUMO = -0.144467638234285
+cycle= 7 E= -519.048874103973  delta_E= -1.42e-05  |g|= 0.00103  |ddm|= 0.0278
+  HOMO = -0.246452915274936  LUMO = -0.144531750626907
+cycle= 8 E= -519.048874360687  delta_E= -2.57e-07  |g|= 0.00034  |ddm|= 0.00628
+  HOMO = -0.246447794034535  LUMO = -0.144533840295942
+cycle= 9 E= -519.048874385519  delta_E= -2.48e-08  |g|= 9.6e-05  |ddm|= 0.0016
+  HOMO = -0.24644305367363  LUMO = -0.144524974307648
+cycle= 10 E= -519.048874387794  delta_E= -2.27e-09  |g|= 3.05e-05  |ddm|= 0.000773
+  HOMO = -0.246443504059287  LUMO = -0.144525195898185
+cycle= 11 E= -519.048874387984  delta_E= -1.9e-10  |g|= 1.5e-05  |ddm|= 0.000184
+  HOMO = -0.246442766704318  LUMO = -0.144525907158005
+Extra cycle  E= -519.048874387834  delta_E= 1.49e-10  |g|= 2.7e-05  |ddm|= 0.000179
+converged SCF energy = -519.048874387834
+rhf_internal: lowest eigs of H = [0.22970626 0.29898129 0.38455671]
+<class 'pyscf.dft.rks.RKS'> wavefunction is stable in the internal stability analysis
+fun_pbe0
+1_optimized.xyz  Singlet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 singlet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmpfoplzxv2
+max_memory 4000 MB (current use 223 MB)
+
+
+Excited State energies (eV)
+[1.56653971 2.01545917 2.59248615 3.4890065  3.64134932]
+
+** Singlet excitation energies and oscillator strengths **
+Excited State   1:      1.56654 eV    791.45 nm  f=0.0032
+      41 -> 44        0.10594
+      43 -> 44       -0.69612
+Excited State   2:      2.01546 eV    615.17 nm  f=0.0000
+      42 -> 44        0.70290
+Excited State   3:      2.59249 eV    478.24 nm  f=0.0000
+      40 -> 44       -0.69794
+Excited State   4:      3.48901 eV    355.36 nm  f=0.0000
+      38 -> 44        0.70169
+Excited State   5:      3.64135 eV    340.49 nm  f=0.0000
+      37 -> 44       -0.70251
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.0001      0.2890      0.0000      0.0835      0.0032
+  2         0.0008      0.0002      0.0048      0.0000      0.0000
+  3         0.0010      0.0025     -0.0000      0.0000      0.0000
+  4         0.0008      0.0013     -0.0000      0.0000      0.0000
+  5         0.0029      0.0005     -0.0109      0.0001      0.0000
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.0000     -0.0445     -0.0000      0.0020      0.0229
+  2        -0.0001     -0.0000     -0.0022      0.0000      0.0000
+  3        -0.0001     -0.0003      0.0000      0.0000      0.0000
+  4        -0.0001     -0.0001     -0.0000      0.0000      0.0000
+  5        -0.0002     -0.0000      0.0027      0.0000      0.0000
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1         0.0003     -0.0001      2.1468
+  2         0.0000     -0.0746     -0.0015
+  3        -0.0014     -0.0001     -0.0012
+  4        -0.2030      0.0002      0.0011
+  5        -0.0002     -0.2654     -0.0004
+1_optimized.xyz  Triplet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 triplet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmpfoplzxv2
+max_memory 4000 MB (current use 223 MB)
+
+
+Excited State energies (eV)
+[1.34155307 1.92393893 2.16318821 2.32823058 2.49152964]
+
+** Triplet excitation energies and oscillator strengths **
+Excited State   1:      1.34155 eV    924.18 nm  f=0.0000
+      43 -> 44       -0.70178
+Excited State   2:      1.92394 eV    644.43 nm  f=0.0000
+      42 -> 44        0.70130
+Excited State   3:      2.16319 eV    573.15 nm  f=0.0000
+      41 -> 44        0.69352
+Excited State   4:      2.32823 eV    532.53 nm  f=0.0000
+      39 -> 44       -0.69835
+Excited State   5:      2.49153 eV    497.62 nm  f=0.0000
+      40 -> 44       -0.69598
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.0000      0.0000      0.0000      0.0000      0.0000
+  2         0.0000      0.0000      0.0000      0.0000      0.0000
+  3         0.0000      0.0000      0.0000      0.0000      0.0000
+  4         0.0000      0.0000      0.0000      0.0000      0.0000
+  5         0.0000      0.0000      0.0000      0.0000      0.0000
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  2        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  3        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  4        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  5        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1        -0.0000     -0.0000     -0.0000
+  2        -0.0000     -0.0000     -0.0000
+  3        -0.0000     -0.0000     -0.0000
+  4        -0.0000     -0.0000     -0.0000
+  5        -0.0000     -0.0000     -0.0000
+#INFO: **** input file is /export/home/lizd20/zhaohw/tddft/tadf/46_IST/tda/tda.py ****
+# source /export/home/lizd20/clf/clf_jax/bin/activate
+
+from pyscf import gto, dft, scf, ao2mo, lib, tddft,fci
+from pyscf.fci import addons
+import numpy as np
+from pyscf.dft import numint
+import scipy
+from functools import reduce
+import h5py
+import time
+import sys
+#sys.path.append('/export/home/lizd20/zhaohw/tddft/')
+#from SF_XTDA import SA_SF_TDA
+
+#angles = np.arange(0,181,5)
+nstates = 5
+funs = ['b3lyp','pbe0','cam-b3lyp']
+#fun = 'b3lyp'
+def update_h5(name,sa,count,excited,vect,ground=None,ds=None):
+    fname = name + '.h5'
+    f = h5py.File(fname,'a')
+    if ground is not None:
+        f['grounds'][count] = ground
+        f['Ds'][count] = ds
+    f['vects'][sa,count] = np.array(vect)
+    f['exciteds'][sa,count] = np.array(excited)
+    f.close()
+    return None 
+def write_h5(R,nstates,name):
+    fname = name + '.h5'
+    len_r = len(R)
+    f = h5py.File(fname,'w')
+    f['R'] = R
+    f['grounds'] = np.zeros(len_r)
+    f['vects'] = np.zeros((5,len_r,nstates,5))
+    f['exciteds'] = np.zeros((5,len_r,nstates))
+    f['Ds'] = np.zeros((len_r,nstates))
+    f.close()
+    return None
+
+def read_xyz(name):
+    filename = '/export/home/lizd20/zhaohw/tddft/tadf/46_IST/xyz/'+ name
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+    atoms = []
+    for line in lines[2:]:
+        parts = line.split()
+        if len(parts) >=4:
+            atom = parts[0]
+            coords = list(map(float, parts[1:4]))
+            atoms.append((atom,coords))
+    return atoms
+mols = [str(i)+'_optimized.xyz' for i in np.arange(46)+1][:4]
+#mols = ['17_optimized.xyz','28_optimized.xyz']
+#mols = ['44_optimized.xyz']
+for fun in funs:
+    for i,mol_i in enumerate(mols):
+        atoms = read_xyz(mol_i)    
+        mol = gto.M(                 
+              atom = atoms,
+          basis = 'aug-cc-pvdz',
+          charge = 0,
+          spin = 0, 
+          verbose = 4,
+     #     symmetry=True,
+        )    
+        start = time.time()
+        if fun == 'hf':
+            mf = scf.RHF(mol)
+        else:
+            mf = dft.RKS(mol)
+            mf.xc = fun
+    #mf.grids.level = 6
+    #mf.irrep_nelec = {'A1': (4,2), 'B1':(1,1), 'B2':(1,1)}
+    #mf.level_shift = 0.2
+    #mf.grids.atom_grid = (99,590)
+    #mf = mf.newton()
+    #mf.max_cycle = 100
+    #mf.diis_damp = 0.5
+    #mf.diis_start_cycle = 3
+    #mf.init_guess = 'huckel'
+        #if fun != 'b3lyp':
+        #    data = scf.chkfile.load(f'chk_file/mol{i+1}.chk','scf')
+        #    mf.mo_coeff = data['mo_coeff']
+        #    mf.mo_occ = data['mo_occ']
+        #    mf.mo_energy = data['mo_energy']
+        #else:
+        #    mf.chkfile = f'chk_file/mol{i+1}.chk'
+        mf.kernel()
+    #mf.analyze()
+        if not mf.converged:
+            mf = mf.newton()
+            mf.kernel()
+        assert mf.converged
+        mo, _, stable, _ = mf.stability(return_status=True)
+        if stable is False:
+            dm = mf.make_rdm1(mo, mf.mo_occ)
+            mf.kernel(dm0=dm)
+            mo, _, stable, _ = mf.stability(nroots=5,tol=1e-7,return_status=True)
+            assert stable
+        
+        print(f'fun_{fun}')
+        print(mol_i,' Singlet')
+        mytd = tddft.TDA(mf)
+        mytd.nstates = nstates
+        mytd.kernel()
+        mytd.analyze()
+
+        print(mol_i,' Triplet')
+        mytd2 = tddft.TDA(mf)
+        mytd2.nstates = nstates
+        mytd2.singlet = False
+        mytd2.kernel()
+        mytd2.analyze()
+
+print('Done')
+#INFO: ******************** input file end ********************
+
+
+System: uname_result(system='Linux', node='mgmt', release='3.10.0-1160.el7.x86_64', version='#1 SMP Mon Oct 19 16:18:59 UTC 2020', machine='x86_64')  Threads 16
+Python 3.9.0 (default, Nov 15 2020, 14:28:56) 
+[GCC 7.3.0]
+numpy 1.26.4  scipy 1.13.1  h5py 3.11.0
+Date: Sat Feb 28 00:28:56 2026
+PySCF version 2.11.0
+PySCF path  /export/home/lizd20/anaconda3/envs/zhw/lib/python3.9/site-packages/pyscf
+
+[CONFIG] conf_file None
+[INPUT] verbose = 4
+[INPUT] num. atoms = 20
+[INPUT] num. electrons = 102
+[INPUT] charge = 0
+[INPUT] spin (= nelec alpha-beta = 2S) = 0
+[INPUT] symmetry False subgroup None
+[INPUT] Mole.unit = angstrom
+[INPUT] Symbol           X                Y                Z      unit          X                Y                Z       unit  Magmom
+[INPUT]  1 C      2.553158000000  -1.223881000000   0.000000000000 AA    4.824769372742  -2.312799899059   0.000000000000 Bohr   0.0
+[INPUT]  2 C      3.235434000000   0.001261000000   0.000001000000 AA    6.114084154106   0.002382944643   0.000001889726 Bohr   0.0
+[INPUT]  3 C      2.551676000000   1.225638000000   0.000000000000 AA    4.821968798626   2.316120147860   0.000000000000 Bohr   0.0
+[INPUT]  4 C      1.135288000000   1.302960000000   0.000001000000 AA    2.145383392505   2.462237551263   0.000001889726 Bohr   0.0
+[INPUT]  5 B      0.339345000000  -0.000185000000   0.000006000000 AA    0.641269111741  -0.000349599333   0.000011338357 Bohr   0.0
+[INPUT]  6 C      1.137135000000  -1.301990000000  -0.000001000000 AA    2.148873716657  -2.460404516922  -0.000001889726 Bohr   0.0
+[INPUT]  7 C      0.491733000000  -2.564586000000  -0.000005000000 AA    0.929240696411  -4.846365162894  -0.000009448631 Bohr   0.0
+[INPUT]  8 C     -0.893796000000  -2.748134000000  -0.000003000000 AA   -1.689029651232  -5.193220613605  -0.000005669178 Bohr   0.0
+[INPUT]  9 P     -2.124485000000  -1.497144000000   0.000003000000 AA   -4.014694805747  -2.829192129036   0.000005669178 Bohr   0.0
+[INPUT] 10 C     -1.180326000000  -0.000528000000   0.000003000000 AA   -2.230492877703  -0.000997775394   0.000005669178 Bohr   0.0
+[INPUT] 11 P     -2.125502000000   1.495602000000  -0.000002000000 AA   -4.016616657215   2.826278171352  -0.000003779452 Bohr   0.0
+[INPUT] 12 C     -0.895704000000   2.747519000000  -0.000001000000 AA   -1.692635248677   5.192058432039  -0.000001889726 Bohr   0.0
+[INPUT] 13 C      0.489853000000   2.565067000000  -0.000001000000 AA    0.925688011297   4.847274121160  -0.000001889726 Bohr   0.0
+[INPUT] 14 H      3.147990000000  -2.146606000000   0.000001000000 AA    5.948838942870  -4.056497437348   0.000001889726 Bohr   0.0
+[INPUT] 15 H      4.327545000000   0.002144000000   0.000002000000 AA    8.177874841731   0.004051572811   0.000003779452 Bohr   0.0
+[INPUT] 16 H      3.145707000000   2.148939000000  -0.000003000000 AA    5.944524698127   4.060906168397  -0.000005669178 Bohr   0.0
+[INPUT] 17 H      1.118352000000  -3.468723000000  -0.000007000000 AA    2.113378990860  -6.554936471980  -0.000013228083 Bohr   0.0
+[INPUT] 18 H     -1.272943000000  -3.775322000000  -0.000004000000 AA   -2.405513642182  -7.134324612045  -0.000007558904 Bohr   0.0
+[INPUT] 19 H     -1.276275000000   3.774191000000  -0.000002000000 AA   -2.411810209629   7.132187331798  -0.000003779452 Bohr   0.0
+[INPUT] 20 H      1.116002000000   3.469465000000  -0.000001000000 AA    2.108938134467   6.556338648764  -0.000001889726 Bohr   0.0
+
+nuclear repulsion = 848.037918177854
+number of shells = 139
+number of NR pGTOs = 562
+number of NR cGTOs = 370
+basis = aug-cc-pvdz
+ecp = {}
+CPU time:    230049.72
+
+
+******** <class 'pyscf.dft.rks.RKS'> ********
+method = RKS
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-09
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/tmp8dfc5_f_
+max_memory 4000 MB (current use 251 MB)
+XC library pyscf.dft.libxc version 7.0.0
+    S. Lehtola, C. Steigemann, M. J.T. Oliveira, and M. A.L. Marques.,  SoftwareX 7, 1–5 (2018)
+XC functionals = pbe0
+    C. Adamo and V. Barone.,  J. Chem. Phys. 110, 6158 (1999)
+    M. Ernzerhof and G. E. Scuseria.,  J. Chem. Phys. 110, 5029 (1999)
+radial grids: 
+    Treutler-Ahlrichs [JCP 102, 346 (1995); DOI:10.1063/1.469408] (M4) radial grids
+    
+becke partition: Becke, JCP 88, 2547 (1988); DOI:10.1063/1.454033
+pruning grids: <function nwchem_prune at 0x7f2126ee1550>
+grids dens level: 3
+symmetrized grids: False
+atomic radii adjust function: <function treutler_atomic_radii_adjust at 0x7f2127521ca0>
+small_rho_cutoff = 1e-07
+Set gradient conv threshold to 3.16228e-05
+Initial guess from minao.
+tot grids = 262248
+init E= -1094.3519048971
+  HOMO = -0.264449108376362  LUMO = -0.194842801293997
+cycle= 1 E= -1092.01572218774  delta_E= 2.34  |g|= 0.568  |ddm|= 56.3
+  HOMO = -0.145136628807025  LUMO = -0.11665520046618
+cycle= 2 E= -1091.80623175759  delta_E= 0.209  |g|= 0.988  |ddm|= 11.1
+  HOMO = -0.227134892148163  LUMO = -0.139255834075362
+cycle= 3 E= -1092.10267221558  delta_E= -0.296  |g|= 0.148  |ddm|=  5.3
+  HOMO = -0.229113832816919  LUMO = -0.14381580842079
+cycle= 4 E= -1092.10798742826  delta_E= -0.00532  |g|= 0.0917  |ddm|= 1.25
+  HOMO = -0.229069799262366  LUMO = -0.143822402834771
+cycle= 5 E= -1092.11053749825  delta_E= -0.00255  |g|= 0.0304  |ddm|= 0.585
+  HOMO = -0.227961057202441  LUMO = -0.143091268079309
+cycle= 6 E= -1092.1107757671  delta_E= -0.000238  |g|= 0.0102  |ddm|= 0.238
+  HOMO = -0.227926971980729  LUMO = -0.142533431235325
+cycle= 7 E= -1092.11080860428  delta_E= -3.28e-05  |g|= 0.00268  |ddm|= 0.12
+  HOMO = -0.227998612139406  LUMO = -0.142643581770967
+cycle= 8 E= -1092.11081078906  delta_E= -2.18e-06  |g|= 0.000858  |ddm|= 0.0212
+  HOMO = -0.228008313551085  LUMO = -0.142665837266584
+cycle= 9 E= -1092.11081098983  delta_E= -2.01e-07  |g|= 0.000225  |ddm|= 0.00591
+  HOMO = -0.228001925912447  LUMO = -0.142654392110026
+cycle= 10 E= -1092.1108110046  delta_E= -1.48e-08  |g|= 9.97e-05  |ddm|= 0.00298
+  HOMO = -0.228001558626304  LUMO = -0.142652959277245
+cycle= 11 E= -1092.11081100701  delta_E= -2.41e-09  |g|= 2.47e-05  |ddm|= 0.000706
+  HOMO = -0.227998846532358  LUMO = -0.142653142712678
+cycle= 12 E= -1092.11081100705  delta_E= -3.48e-11  |g|= 2.55e-05  |ddm|= 0.000309
+  HOMO = -0.228003859415642  LUMO = -0.142654151948318
+Extra cycle  E= -1092.11081100649  delta_E= 5.54e-10  |g|= 4.93e-05  |ddm|= 0.000326
+converged SCF energy = -1092.11081100649
+rhf_internal: lowest eigs of H = [0.18952976 0.33780051 0.42730884]
+<class 'pyscf.dft.rks.RKS'> wavefunction is stable in the internal stability analysis
+fun_pbe0
+2_optimized.xyz  Singlet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 singlet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmp8dfc5_f_
+max_memory 4000 MB (current use 233 MB)
+
+
+Excited State energies (eV)
+[1.27143342 2.19776102 2.82970132 3.08042808 3.31406244]
+
+** Singlet excitation energies and oscillator strengths **
+Excited State   1:      1.27143 eV    975.15 nm  f=0.0024
+      51 -> 52       -0.69807
+Excited State   2:      2.19776 eV    564.14 nm  f=0.0000
+      50 -> 52        0.70474
+Excited State   3:      2.82970 eV    438.15 nm  f=0.0042
+      46 -> 52       -0.14081
+      47 -> 52       -0.69097
+Excited State   4:      3.08043 eV    402.49 nm  f=0.1395
+      49 -> 52        0.62845
+      51 -> 53       -0.29790
+Excited State   5:      3.31406 eV    374.12 nm  f=0.0053
+      46 -> 52        0.68964
+      47 -> 52       -0.13896
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.0002     -0.2803      0.0000      0.0786      0.0024
+  2        -0.0000     -0.0000     -0.0003      0.0000      0.0000
+  3        -0.0000      0.0000      0.2469      0.0610      0.0042
+  4        -1.3594     -0.0008     -0.0000      1.8479      0.1395
+  5        -0.0000      0.0001      0.2567      0.0659      0.0053
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.0000      0.0362     -0.0000      0.0013      0.0187
+  2         0.0000      0.0000      0.0000      0.0000      0.0000
+  3         0.0000     -0.0000     -0.0250      0.0006      0.0040
+  4         0.1392      0.0001      0.0000      0.0194      0.1140
+  5         0.0000     -0.0000     -0.0284      0.0008      0.0044
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1         0.0000     -0.0000      1.9772
+  2        -0.0024      0.0003      0.0000
+  3        -0.0000     -0.4045      0.0000
+  4        -0.0000      0.0000      0.0003
+  5         0.0005     -0.4934      0.0000
+2_optimized.xyz  Triplet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 triplet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmp8dfc5_f_
+max_memory 4000 MB (current use 233 MB)
+
+
+Excited State energies (eV)
+[1.00297472 1.79223538 1.81537337 2.09163073 2.38522954]
+
+** Triplet excitation energies and oscillator strengths **
+Excited State   1:      1.00297 eV   1236.16 nm  f=0.0000
+      51 -> 52        0.70286
+Excited State   2:      1.79224 eV    691.79 nm  f=0.0000
+      49 -> 52        0.69690
+Excited State   3:      1.81537 eV    682.97 nm  f=0.0000
+      50 -> 52        0.69302
+Excited State   4:      2.09163 eV    592.76 nm  f=0.0000
+      48 -> 52        0.69936
+Excited State   5:      2.38523 eV    519.80 nm  f=0.0000
+      46 -> 52       -0.16193
+      47 -> 52        0.66120
+      50 -> 53       -0.14389
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.0000      0.0000      0.0000      0.0000      0.0000
+  2         0.0000      0.0000      0.0000      0.0000      0.0000
+  3         0.0000      0.0000      0.0000      0.0000      0.0000
+  4         0.0000      0.0000      0.0000      0.0000      0.0000
+  5         0.0000      0.0000      0.0000      0.0000      0.0000
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  2        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  3        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  4        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  5        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1        -0.0000     -0.0000     -0.0000
+  2        -0.0000     -0.0000     -0.0000
+  3        -0.0000     -0.0000     -0.0000
+  4        -0.0000     -0.0000     -0.0000
+  5        -0.0000     -0.0000     -0.0000
+#INFO: **** input file is /export/home/lizd20/zhaohw/tddft/tadf/46_IST/tda/tda.py ****
+# source /export/home/lizd20/clf/clf_jax/bin/activate
+
+from pyscf import gto, dft, scf, ao2mo, lib, tddft,fci
+from pyscf.fci import addons
+import numpy as np
+from pyscf.dft import numint
+import scipy
+from functools import reduce
+import h5py
+import time
+import sys
+#sys.path.append('/export/home/lizd20/zhaohw/tddft/')
+#from SF_XTDA import SA_SF_TDA
+
+#angles = np.arange(0,181,5)
+nstates = 5
+funs = ['b3lyp','pbe0','cam-b3lyp']
+#fun = 'b3lyp'
+def update_h5(name,sa,count,excited,vect,ground=None,ds=None):
+    fname = name + '.h5'
+    f = h5py.File(fname,'a')
+    if ground is not None:
+        f['grounds'][count] = ground
+        f['Ds'][count] = ds
+    f['vects'][sa,count] = np.array(vect)
+    f['exciteds'][sa,count] = np.array(excited)
+    f.close()
+    return None 
+def write_h5(R,nstates,name):
+    fname = name + '.h5'
+    len_r = len(R)
+    f = h5py.File(fname,'w')
+    f['R'] = R
+    f['grounds'] = np.zeros(len_r)
+    f['vects'] = np.zeros((5,len_r,nstates,5))
+    f['exciteds'] = np.zeros((5,len_r,nstates))
+    f['Ds'] = np.zeros((len_r,nstates))
+    f.close()
+    return None
+
+def read_xyz(name):
+    filename = '/export/home/lizd20/zhaohw/tddft/tadf/46_IST/xyz/'+ name
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+    atoms = []
+    for line in lines[2:]:
+        parts = line.split()
+        if len(parts) >=4:
+            atom = parts[0]
+            coords = list(map(float, parts[1:4]))
+            atoms.append((atom,coords))
+    return atoms
+mols = [str(i)+'_optimized.xyz' for i in np.arange(46)+1][:4]
+#mols = ['17_optimized.xyz','28_optimized.xyz']
+#mols = ['44_optimized.xyz']
+for fun in funs:
+    for i,mol_i in enumerate(mols):
+        atoms = read_xyz(mol_i)    
+        mol = gto.M(                 
+              atom = atoms,
+          basis = 'aug-cc-pvdz',
+          charge = 0,
+          spin = 0, 
+          verbose = 4,
+     #     symmetry=True,
+        )    
+        start = time.time()
+        if fun == 'hf':
+            mf = scf.RHF(mol)
+        else:
+            mf = dft.RKS(mol)
+            mf.xc = fun
+    #mf.grids.level = 6
+    #mf.irrep_nelec = {'A1': (4,2), 'B1':(1,1), 'B2':(1,1)}
+    #mf.level_shift = 0.2
+    #mf.grids.atom_grid = (99,590)
+    #mf = mf.newton()
+    #mf.max_cycle = 100
+    #mf.diis_damp = 0.5
+    #mf.diis_start_cycle = 3
+    #mf.init_guess = 'huckel'
+        #if fun != 'b3lyp':
+        #    data = scf.chkfile.load(f'chk_file/mol{i+1}.chk','scf')
+        #    mf.mo_coeff = data['mo_coeff']
+        #    mf.mo_occ = data['mo_occ']
+        #    mf.mo_energy = data['mo_energy']
+        #else:
+        #    mf.chkfile = f'chk_file/mol{i+1}.chk'
+        mf.kernel()
+    #mf.analyze()
+        if not mf.converged:
+            mf = mf.newton()
+            mf.kernel()
+        assert mf.converged
+        mo, _, stable, _ = mf.stability(return_status=True)
+        if stable is False:
+            dm = mf.make_rdm1(mo, mf.mo_occ)
+            mf.kernel(dm0=dm)
+            mo, _, stable, _ = mf.stability(nroots=5,tol=1e-7,return_status=True)
+            assert stable
+        
+        print(f'fun_{fun}')
+        print(mol_i,' Singlet')
+        mytd = tddft.TDA(mf)
+        mytd.nstates = nstates
+        mytd.kernel()
+        mytd.analyze()
+
+        print(mol_i,' Triplet')
+        mytd2 = tddft.TDA(mf)
+        mytd2.nstates = nstates
+        mytd2.singlet = False
+        mytd2.kernel()
+        mytd2.analyze()
+
+print('Done')
+#INFO: ******************** input file end ********************
+
+
+System: uname_result(system='Linux', node='mgmt', release='3.10.0-1160.el7.x86_64', version='#1 SMP Mon Oct 19 16:18:59 UTC 2020', machine='x86_64')  Threads 16
+Python 3.9.0 (default, Nov 15 2020, 14:28:56) 
+[GCC 7.3.0]
+numpy 1.26.4  scipy 1.13.1  h5py 3.11.0
+Date: Sat Feb 28 01:17:48 2026
+PySCF version 2.11.0
+PySCF path  /export/home/lizd20/anaconda3/envs/zhw/lib/python3.9/site-packages/pyscf
+
+[CONFIG] conf_file None
+[INPUT] verbose = 4
+[INPUT] num. atoms = 17
+[INPUT] num. electrons = 126
+[INPUT] charge = 0
+[INPUT] spin (= nelec alpha-beta = 2S) = 0
+[INPUT] symmetry False subgroup None
+[INPUT] Mole.unit = angstrom
+[INPUT] Symbol           X                Y                Z      unit          X                Y                Z       unit  Magmom
+[INPUT]  1 P      1.114276000000   2.496599000000  -0.002003000000 AA    2.105676467176   4.717888352863  -0.003785121428 Bohr   0.0
+[INPUT]  2 P      3.033970000000   1.544870000000   0.002339000000 AA    5.733372370147   2.919381198057   0.004420069405 Bohr   0.0
+[INPUT]  3 C      2.664267000000  -0.172655000000   0.001607000000 AA    5.034734952717  -0.326270664037   0.003036789882 Bohr   0.0
+[INPUT]  4 C      1.450361000000  -0.910481000000   0.000111000000 AA    2.740785071750  -1.720559731620   0.000209759600 Bohr   0.0
+[INPUT]  5 C      1.633787000000  -2.318951000000  -0.000163000000 AA    3.087409975875  -4.382182286286  -0.000308025358 Bohr   0.0
+[INPUT]  6 P      0.434582000000  -3.601831000000  -0.001062000000 AA    0.821240958666  -6.806474136968  -0.002006889144 Bohr   0.0
+[INPUT]  7 C     -1.034678000000  -2.642145000000  -0.000713000000 AA   -1.955258047113  -4.992930431389  -0.001347374727 Bohr   0.0
+[INPUT]  8 C     -1.191667000000  -1.229699000000   0.000025000000 AA   -2.251924261682  -2.323794325652   0.000047243153 Bohr   0.0
+[INPUT]  9 B      0.033617000000  -0.277886000000  -0.000655000000 AA    0.063526923130  -0.525128433851  -0.001237770612 Bohr   0.0
+[INPUT] 10 C     -0.150354000000   1.246182000000  -0.002134000000 AA   -0.284127881733   2.354942681363  -0.004032675550 Bohr   0.0
+[INPUT] 11 P     -1.677670000000   2.160033000000  -0.001908000000 AA   -3.170336827399   4.081870790023  -0.003605597446 Bohr   0.0
+[INPUT] 12 P     -3.313827000000   0.779378000000   0.002850000000 AA   -6.262225454189   1.472810967511   0.005385719455 Bohr   0.0
+[INPUT] 13 C     -2.545518000000  -0.802094000000   0.000868000000 AA   -4.810331865151  -1.515737986157   0.001640282276 Bohr   0.0
+[INPUT] 14 H      3.583028000000  -0.780958000000   0.002876000000 AA    6.770941616648  -1.475796734788   0.005434852334 Bohr   0.0
+[INPUT] 15 H      2.671726000000  -2.682910000000  -0.000157000000 AA    5.048830419880  -5.069965116857  -0.000296687002 Bohr   0.0
+[INPUT] 16 H     -1.956412000000  -3.242232000000  -0.000853000000 AA   -3.697082866813  -6.126930512301  -0.001611936384 Bohr   0.0
+[INPUT] 17 H     -3.293581000000  -1.611142000000   0.000550000000 AA   -6.223966059071  -3.044617127784   0.001039349369 Bohr   0.0
+
+nuclear repulsion = 1148.07754180996
+number of shells = 124
+number of NR pGTOs = 574
+number of NR cGTOs = 355
+basis = aug-cc-pvdz
+ecp = {}
+CPU time:    274766.10
+
+
+******** <class 'pyscf.dft.rks.RKS'> ********
+method = RKS
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-09
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/tmpxpxjv49z
+max_memory 4000 MB (current use 233 MB)
+XC library pyscf.dft.libxc version 7.0.0
+    S. Lehtola, C. Steigemann, M. J.T. Oliveira, and M. A.L. Marques.,  SoftwareX 7, 1–5 (2018)
+XC functionals = pbe0
+    C. Adamo and V. Barone.,  J. Chem. Phys. 110, 6158 (1999)
+    M. Ernzerhof and G. E. Scuseria.,  J. Chem. Phys. 110, 5029 (1999)
+radial grids: 
+    Treutler-Ahlrichs [JCP 102, 346 (1995); DOI:10.1063/1.469408] (M4) radial grids
+    
+becke partition: Becke, JCP 88, 2547 (1988); DOI:10.1063/1.454033
+pruning grids: <function nwchem_prune at 0x7f2126ee1550>
+grids dens level: 3
+symmetrized grids: False
+atomic radii adjust function: <function treutler_atomic_radii_adjust at 0x7f2127521ca0>
+small_rho_cutoff = 1e-07
+Set gradient conv threshold to 3.16228e-05
+Initial guess from minao.
+tot grids = 248008
+init E= -2001.83550290171
+  HOMO = -0.253692005829985  LUMO = -0.204059817570564
+cycle= 1 E= -1999.71959525693  delta_E= 2.12  |g|= 0.415  |ddm|= 27.9
+  HOMO = -0.199685118387086  LUMO = -0.154012500708865
+cycle= 2 E= -1999.56832834966  delta_E= 0.151  |g|= 0.793  |ddm|= 5.28
+  HOMO = -0.241378965051848  LUMO = -0.170240157756198
+cycle= 3 E= -1999.76626288493  delta_E= -0.198  |g|= 0.122  |ddm|=  2.1
+  HOMO = -0.242575254933628  LUMO = -0.168239471422839
+cycle= 4 E= -1999.76968236653  delta_E= -0.00342  |g|= 0.0795  |ddm|= 0.554
+  HOMO = -0.241841160064223  LUMO = -0.168816098846941
+cycle= 5 E= -1999.77169563443  delta_E= -0.00201  |g|= 0.0286  |ddm|= 0.265
+  HOMO = -0.241356866834649  LUMO = -0.169174568684915
+cycle= 6 E= -1999.77193369382  delta_E= -0.000238  |g|= 0.0118  |ddm|= 0.114
+  HOMO = -0.241343805361329  LUMO = -0.168701015507289
+cycle= 7 E= -1999.77198794451  delta_E= -5.43e-05  |g|= 0.00157  |ddm|= 0.041
+  HOMO = -0.241403409584119  LUMO = -0.168740424956418
+cycle= 8 E= -1999.77198847637  delta_E= -5.32e-07  |g|= 0.00101  |ddm|= 0.0102
+  HOMO = -0.241404370774556  LUMO = -0.168747484647779
+cycle= 9 E= -1999.77198876787  delta_E= -2.92e-07  |g|= 0.000183  |ddm|= 0.0037
+  HOMO = -0.241395962163167  LUMO = -0.168737345567005
+cycle= 10 E= -1999.77198877851  delta_E= -1.06e-08  |g|= 5.07e-05  |ddm|= 0.00118
+  HOMO = -0.241397779672788  LUMO = -0.168738491100668
+cycle= 11 E= -1999.77198877923  delta_E= -7.18e-10  |g|= 1.68e-05  |ddm|= 0.000244
+  HOMO = -0.241396616316811  LUMO = -0.168738903419919
+Extra cycle  E= -1999.7719887791  delta_E= 1.23e-10  |g|= 2.65e-05  |ddm|= 0.000185
+converged SCF energy = -1999.7719887791
+rhf_internal: lowest eigs of H = [0.15189791 0.24818432 0.29633534]
+<class 'pyscf.dft.rks.RKS'> wavefunction is stable in the internal stability analysis
+fun_pbe0
+3_optimized.xyz  Singlet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 singlet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmpxpxjv49z
+max_memory 4000 MB (current use 233 MB)
+
+
+Excited State energies (eV)
+[1.01873409 1.637159   1.92860064 2.42890958 2.44572998]
+
+** Singlet excitation energies and oscillator strengths **
+Excited State   1:      1.01873 eV   1217.04 nm  f=0.0019
+      63 -> 64       -0.69926
+Excited State   2:      1.63716 eV    757.31 nm  f=0.0003
+      62 -> 64        0.70344
+Excited State   3:      1.92860 eV    642.87 nm  f=0.0000
+      60 -> 64        0.70310
+Excited State   4:      2.42891 eV    510.45 nm  f=0.0000
+      58 -> 64        0.69908
+Excited State   5:      2.44573 eV    506.94 nm  f=0.0026
+      57 -> 64        0.70281
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.2740     -0.0322      0.0000      0.0761      0.0019
+  2        -0.0014      0.0004      0.0864      0.0075      0.0003
+  3         0.0033     -0.0001     -0.0004      0.0000      0.0000
+  4         0.0023      0.0029      0.0046      0.0000      0.0000
+  5         0.0002     -0.0036     -0.2086      0.0435      0.0026
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.0376      0.0043     -0.0000      0.0014      0.0255
+  2         0.0002     -0.0002     -0.0171      0.0003      0.0032
+  3        -0.0004      0.0000      0.0001      0.0000      0.0000
+  4        -0.0002     -0.0004     -0.0005      0.0000      0.0000
+  5        -0.0000      0.0006      0.0232      0.0005      0.0040
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1        -0.0001      0.0007      1.7249
+  2        -0.2626     -0.0316      0.0017
+  3         0.0280     -0.2155     -0.0025
+  4         0.0014     -0.1045     -0.0007
+  5         0.4574      0.0529     -0.0001
+3_optimized.xyz  Triplet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 triplet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmpxpxjv49z
+max_memory 4000 MB (current use 233 MB)
+
+
+Excited State energies (eV)
+[0.74843788 1.38867409 1.47570271 1.60379202 1.76115929]
+
+** Triplet excitation energies and oscillator strengths **
+Excited State   1:      0.74844 eV   1656.57 nm  f=0.0000
+      63 -> 64       -0.70271
+Excited State   2:      1.38867 eV    892.82 nm  f=0.0000
+      57 -> 64        0.13185
+      62 -> 64       -0.67839
+Excited State   3:      1.47570 eV    840.17 nm  f=0.0000
+      61 -> 64        0.69475
+Excited State   4:      1.60379 eV    773.07 nm  f=0.0000
+      60 -> 64       -0.68489
+      60 -> 66       -0.10321
+Excited State   5:      1.76116 eV    703.99 nm  f=0.0000
+      59 -> 64       -0.69422
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.0000      0.0000      0.0000      0.0000      0.0000
+  2         0.0000      0.0000      0.0000      0.0000      0.0000
+  3         0.0000      0.0000      0.0000      0.0000      0.0000
+  4         0.0000      0.0000      0.0000      0.0000      0.0000
+  5         0.0000      0.0000      0.0000      0.0000      0.0000
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  2        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  3        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  4        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  5        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1        -0.0000     -0.0000     -0.0000
+  2        -0.0000     -0.0000     -0.0000
+  3        -0.0000     -0.0000     -0.0000
+  4        -0.0000     -0.0000     -0.0000
+  5        -0.0000     -0.0000     -0.0000
+#INFO: **** input file is /export/home/lizd20/zhaohw/tddft/tadf/46_IST/tda/tda.py ****
+# source /export/home/lizd20/clf/clf_jax/bin/activate
+
+from pyscf import gto, dft, scf, ao2mo, lib, tddft,fci
+from pyscf.fci import addons
+import numpy as np
+from pyscf.dft import numint
+import scipy
+from functools import reduce
+import h5py
+import time
+import sys
+#sys.path.append('/export/home/lizd20/zhaohw/tddft/')
+#from SF_XTDA import SA_SF_TDA
+
+#angles = np.arange(0,181,5)
+nstates = 5
+funs = ['b3lyp','pbe0','cam-b3lyp']
+#fun = 'b3lyp'
+def update_h5(name,sa,count,excited,vect,ground=None,ds=None):
+    fname = name + '.h5'
+    f = h5py.File(fname,'a')
+    if ground is not None:
+        f['grounds'][count] = ground
+        f['Ds'][count] = ds
+    f['vects'][sa,count] = np.array(vect)
+    f['exciteds'][sa,count] = np.array(excited)
+    f.close()
+    return None 
+def write_h5(R,nstates,name):
+    fname = name + '.h5'
+    len_r = len(R)
+    f = h5py.File(fname,'w')
+    f['R'] = R
+    f['grounds'] = np.zeros(len_r)
+    f['vects'] = np.zeros((5,len_r,nstates,5))
+    f['exciteds'] = np.zeros((5,len_r,nstates))
+    f['Ds'] = np.zeros((len_r,nstates))
+    f.close()
+    return None
+
+def read_xyz(name):
+    filename = '/export/home/lizd20/zhaohw/tddft/tadf/46_IST/xyz/'+ name
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+    atoms = []
+    for line in lines[2:]:
+        parts = line.split()
+        if len(parts) >=4:
+            atom = parts[0]
+            coords = list(map(float, parts[1:4]))
+            atoms.append((atom,coords))
+    return atoms
+mols = [str(i)+'_optimized.xyz' for i in np.arange(46)+1][:4]
+#mols = ['17_optimized.xyz','28_optimized.xyz']
+#mols = ['44_optimized.xyz']
+for fun in funs:
+    for i,mol_i in enumerate(mols):
+        atoms = read_xyz(mol_i)    
+        mol = gto.M(                 
+              atom = atoms,
+          basis = 'aug-cc-pvdz',
+          charge = 0,
+          spin = 0, 
+          verbose = 4,
+     #     symmetry=True,
+        )    
+        start = time.time()
+        if fun == 'hf':
+            mf = scf.RHF(mol)
+        else:
+            mf = dft.RKS(mol)
+            mf.xc = fun
+    #mf.grids.level = 6
+    #mf.irrep_nelec = {'A1': (4,2), 'B1':(1,1), 'B2':(1,1)}
+    #mf.level_shift = 0.2
+    #mf.grids.atom_grid = (99,590)
+    #mf = mf.newton()
+    #mf.max_cycle = 100
+    #mf.diis_damp = 0.5
+    #mf.diis_start_cycle = 3
+    #mf.init_guess = 'huckel'
+        #if fun != 'b3lyp':
+        #    data = scf.chkfile.load(f'chk_file/mol{i+1}.chk','scf')
+        #    mf.mo_coeff = data['mo_coeff']
+        #    mf.mo_occ = data['mo_occ']
+        #    mf.mo_energy = data['mo_energy']
+        #else:
+        #    mf.chkfile = f'chk_file/mol{i+1}.chk'
+        mf.kernel()
+    #mf.analyze()
+        if not mf.converged:
+            mf = mf.newton()
+            mf.kernel()
+        assert mf.converged
+        mo, _, stable, _ = mf.stability(return_status=True)
+        if stable is False:
+            dm = mf.make_rdm1(mo, mf.mo_occ)
+            mf.kernel(dm0=dm)
+            mo, _, stable, _ = mf.stability(nroots=5,tol=1e-7,return_status=True)
+            assert stable
+        
+        print(f'fun_{fun}')
+        print(mol_i,' Singlet')
+        mytd = tddft.TDA(mf)
+        mytd.nstates = nstates
+        mytd.kernel()
+        mytd.analyze()
+
+        print(mol_i,' Triplet')
+        mytd2 = tddft.TDA(mf)
+        mytd2.nstates = nstates
+        mytd2.singlet = False
+        mytd2.kernel()
+        mytd2.analyze()
+
+print('Done')
+#INFO: ******************** input file end ********************
+
+
+System: uname_result(system='Linux', node='mgmt', release='3.10.0-1160.el7.x86_64', version='#1 SMP Mon Oct 19 16:18:59 UTC 2020', machine='x86_64')  Threads 16
+Python 3.9.0 (default, Nov 15 2020, 14:28:56) 
+[GCC 7.3.0]
+numpy 1.26.4  scipy 1.13.1  h5py 3.11.0
+Date: Sat Feb 28 02:04:26 2026
+PySCF version 2.11.0
+PySCF path  /export/home/lizd20/anaconda3/envs/zhw/lib/python3.9/site-packages/pyscf
+
+[CONFIG] conf_file None
+[INPUT] verbose = 4
+[INPUT] num. atoms = 21
+[INPUT] num. electrons = 86
+[INPUT] charge = 0
+[INPUT] spin (= nelec alpha-beta = 2S) = 0
+[INPUT] symmetry False subgroup None
+[INPUT] Mole.unit = angstrom
+[INPUT] Symbol           X                Y                Z      unit          X                Y                Z       unit  Magmom
+[INPUT]  1 C     -1.167685000000   2.170478000000   0.000325000000 AA   -2.206604849763   4.101608979394   0.000614160990 Bohr   0.0
+[INPUT]  2 N     -0.003361000000   2.853290000000  -0.000045000000 AA   -0.006351369505   5.391936653960  -0.000085037676 Bohr   0.0
+[INPUT]  3 C      1.162593000000   2.173362000000  -0.000377000000 AA    2.196982364336   4.107058949537  -0.000712426749 Bohr   0.0
+[INPUT]  4 C      1.287372000000   0.763230000000   0.000138000000 AA    2.432780500434   1.442295670052   0.000260782205 Bohr   0.0
+[INPUT]  5 B      0.000020000000  -0.005642000000   0.000094000000 AA    0.000037794522  -0.010661834795   0.000177634256 Bohr   0.0
+[INPUT]  6 C     -1.289223000000   0.760090000000  -0.000159000000 AA   -2.436278383490   1.436361930021  -0.000300466454 Bohr   0.0
+[INPUT]  7 C     -2.491908000000   0.007678000000   0.000099000000 AA   -4.709023647613   0.014509317184   0.000187082886 Bohr   0.0
+[INPUT]  8 C     -2.463249000000  -1.399643000000  -0.000160000000 AA   -4.654865986609  -2.644941942165  -0.000302356180 Bohr   0.0
+[INPUT]  9 C     -1.265167000000  -2.145960000000  -0.000226000000 AA   -2.390819131838  -4.055276674272  -0.000427078104 Bohr   0.0
+[INPUT] 10 C      0.001903000000  -1.511698000000   0.000177000000 AA    0.003596148815  -2.856695203053   0.000334481524 Bohr   0.0
+[INPUT] 11 C      1.270282000000  -2.143200000000   0.000302000000 AA    2.400485080965  -4.050061030168   0.000570697290 Bohr   0.0
+[INPUT] 12 C      2.466529000000  -1.393976000000   0.000064000000 AA    4.661064288297  -2.634232864217   0.000120942472 Bohr   0.0
+[INPUT] 13 C      2.491743000000   0.013459000000  -0.000105000000 AA    4.708711842802   0.025433823911  -0.000198421243 Bohr   0.0
+[INPUT] 14 H     -2.061796000000   2.813229000000   0.001577000000 AA   -3.896229764724   5.316232335684   0.002980098098 Bohr   0.0
+[INPUT] 15 H      2.055098000000   2.818320000000  -0.001211000000 AA    3.883572379141   5.325852931384  -0.002288458337 Bohr   0.0
+[INPUT] 16 H     -3.471778000000   0.503178000000  -0.000040000000 AA   -6.560709585290   0.950868611906  -0.000075589045 Bohr   0.0
+[INPUT] 17 H     -3.411917000000  -1.941227000000  -0.000325000000 AA   -6.447588689748  -3.668387375611  -0.000614160990 Bohr   0.0
+[INPUT] 18 H     -1.346699000000  -3.241193000000  -0.001286000000 AA   -2.544892282226  -6.124967086857  -0.002430187796 Bohr   0.0
+[INPUT] 19 H      1.354399000000  -3.238215000000   0.000575000000 AA    2.559443173385  -6.119339482458   0.001086592522 Bohr   0.0
+[INPUT] 20 H      3.416552000000  -1.933175000000   0.000218000000 AA    6.456347570335  -3.653171300856   0.000411960295 Bohr   0.0
+[INPUT] 21 H      3.470427000000   0.511339000000  -0.000126000000 AA    6.558156565296   0.966290666809  -0.000238105492 Bohr   0.0
+
+nuclear repulsion = 670.000632196805
+number of shells = 144
+number of NR pGTOs = 543
+number of NR cGTOs = 371
+basis = aug-cc-pvdz
+ecp = {}
+CPU time:    317039.54
+
+
+******** <class 'pyscf.dft.rks.RKS'> ********
+method = RKS
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-09
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/tmpw8v4ja9c
+max_memory 4000 MB (current use 232 MB)
+XC library pyscf.dft.libxc version 7.0.0
+    S. Lehtola, C. Steigemann, M. J.T. Oliveira, and M. A.L. Marques.,  SoftwareX 7, 1–5 (2018)
+XC functionals = pbe0
+    C. Adamo and V. Barone.,  J. Chem. Phys. 110, 6158 (1999)
+    M. Ernzerhof and G. E. Scuseria.,  J. Chem. Phys. 110, 5029 (1999)
+radial grids: 
+    Treutler-Ahlrichs [JCP 102, 346 (1995); DOI:10.1063/1.469408] (M4) radial grids
+    
+becke partition: Becke, JCP 88, 2547 (1988); DOI:10.1063/1.454033
+pruning grids: <function nwchem_prune at 0x7f2126ee1550>
+grids dens level: 3
+symmetrized grids: False
+atomic radii adjust function: <function treutler_atomic_radii_adjust at 0x7f2127521ca0>
+small_rho_cutoff = 1e-07
+Set gradient conv threshold to 3.16228e-05
+Initial guess from minao.
+tot grids = 261712
+init E= -505.408865378761
+  HOMO = -0.269830415277054  LUMO = -0.191217680790137
+cycle= 1 E= -502.927707582946  delta_E= 2.48  |g|= 0.575  |ddm|= 42.5
+  HOMO = -0.147742519165211  LUMO = -0.108999837375637
+cycle= 2 E= -502.829512337732  delta_E= 0.0982  |g|= 0.828  |ddm|=  8.8
+  HOMO = -0.226615912657179  LUMO = -0.133120698811965
+cycle= 3 E= -503.018047068985  delta_E= -0.189  |g|= 0.117  |ddm|= 4.58
+  HOMO = -0.228395221077548  LUMO = -0.136133902201088
+cycle= 4 E= -503.019505248602  delta_E= -0.00146  |g|= 0.0955  |ddm|= 0.798
+  HOMO = -0.22831399375116  LUMO = -0.136565371182975
+cycle= 5 E= -503.022163216866  delta_E= -0.00266  |g|= 0.0214  |ddm|= 0.427
+  HOMO = -0.227485172461913  LUMO = -0.135795578328257
+cycle= 6 E= -503.022276401584  delta_E= -0.000113  |g|= 0.00919  |ddm|= 0.16
+  HOMO = -0.227345800001571  LUMO = -0.135476083234384
+cycle= 7 E= -503.022301094523  delta_E= -2.47e-05  |g|= 0.00209  |ddm|= 0.0466
+  HOMO = -0.22744281985306  LUMO = -0.135583387823272
+cycle= 8 E= -503.022302136407  delta_E= -1.04e-06  |g|= 0.000453  |ddm|= 0.0104
+  HOMO = -0.227448955202721  LUMO = -0.135605109081051
+cycle= 9 E= -503.022302181454  delta_E= -4.5e-08  |g|= 0.000157  |ddm|= 0.0031
+  HOMO = -0.22744271504359  LUMO = -0.135591891814482
+cycle= 10 E= -503.02230218775  delta_E= -6.3e-09  |g|= 6.36e-05  |ddm|= 0.00174
+  HOMO = -0.227442883036284  LUMO = -0.135590835126115
+cycle= 11 E= -503.02230218886  delta_E= -1.11e-09  |g|= 1.99e-05  |ddm|= 0.000403
+  HOMO = -0.227441939453399  LUMO = -0.135590799578723
+cycle= 12 E= -503.022302188952  delta_E= -9.16e-11  |g|= 7.3e-06  |ddm|= 0.000162
+  HOMO = -0.227443033046417  LUMO = -0.135590985962677
+Extra cycle  E= -503.022302188924  delta_E= 2.75e-11  |g|= 1.22e-05  |ddm|= 9.38e-05
+converged SCF energy = -503.022302188924
+rhf_internal: lowest eigs of H = [0.19382592 0.33576173 0.47960294]
+<class 'pyscf.dft.rks.RKS'> wavefunction is stable in the internal stability analysis
+fun_pbe0
+4_optimized.xyz  Singlet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 singlet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmpw8v4ja9c
+max_memory 4000 MB (current use 232 MB)
+
+
+Excited State energies (eV)
+[1.31471243 2.26328053 3.23264552 3.55231473 3.61262504]
+
+** Singlet excitation energies and oscillator strengths **
+Excited State   1:      1.31471 eV    943.05 nm  f=0.0026
+      43 -> 44        0.70065
+Excited State   2:      2.26328 eV    547.81 nm  f=0.0000
+      42 -> 44       -0.70265
+Excited State   3:      3.23265 eV    383.54 nm  f=0.0000
+      39 -> 44       -0.70529
+Excited State   4:      3.55231 eV    349.02 nm  f=0.1965
+      41 -> 44       -0.64017
+      43 -> 45       -0.26563
+Excited State   5:      3.61263 eV    343.20 nm  f=0.0000
+      38 -> 44       -0.70327
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.2814     -0.0003      0.0000      0.0792      0.0026
+  2         0.0002     -0.0022     -0.0000      0.0000      0.0000
+  3        -0.0010      0.0017     -0.0085      0.0001      0.0000
+  4         0.0019     -1.5026      0.0001      2.2579      0.1965
+  5        -0.0028      0.0087     -0.0000      0.0001      0.0000
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.0439      0.0001     -0.0000      0.0019      0.0266
+  2        -0.0000      0.0003      0.0000      0.0000      0.0000
+  3         0.0001     -0.0001      0.0030      0.0000      0.0001
+  4        -0.0001      0.1190     -0.0000      0.0142      0.0723
+  5         0.0002     -0.0007      0.0000      0.0000      0.0000
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1        -0.0001      0.0000      2.1037
+  2         0.0001     -0.0478     -0.0001
+  3         0.1331      0.0004      0.0009
+  4         0.0001     -0.0014     -0.0001
+  5         0.0005     -0.2115     -0.0001
+4_optimized.xyz  Triplet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 triplet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmpw8v4ja9c
+max_memory 4000 MB (current use 232 MB)
+
+
+Excited State energies (eV)
+[1.09256012 1.98173079 2.16814216 2.2764058  3.11971218]
+
+** Triplet excitation energies and oscillator strengths **
+Excited State   1:      1.09256 eV   1134.80 nm  f=0.0000
+      43 -> 44       -0.70428
+Excited State   2:      1.98173 eV    625.64 nm  f=0.0000
+      41 -> 44        0.69940
+Excited State   3:      2.16814 eV    571.85 nm  f=0.0000
+      42 -> 44        0.70092
+Excited State   4:      2.27641 eV    544.65 nm  f=0.0000
+      40 -> 44       -0.69856
+Excited State   5:      3.11971 eV    397.42 nm  f=0.0000
+      39 -> 44       -0.70382
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.0000      0.0000      0.0000      0.0000      0.0000
+  2         0.0000      0.0000      0.0000      0.0000      0.0000
+  3         0.0000      0.0000      0.0000      0.0000      0.0000
+  4         0.0000      0.0000      0.0000      0.0000      0.0000
+  5         0.0000      0.0000      0.0000      0.0000      0.0000
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  2        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  3        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  4        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  5        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1        -0.0000     -0.0000     -0.0000
+  2        -0.0000     -0.0000     -0.0000
+  3        -0.0000     -0.0000     -0.0000
+  4        -0.0000     -0.0000     -0.0000
+  5        -0.0000     -0.0000     -0.0000
+#INFO: **** input file is /export/home/lizd20/zhaohw/tddft/tadf/46_IST/tda/tda.py ****
+# source /export/home/lizd20/clf/clf_jax/bin/activate
+
+from pyscf import gto, dft, scf, ao2mo, lib, tddft,fci
+from pyscf.fci import addons
+import numpy as np
+from pyscf.dft import numint
+import scipy
+from functools import reduce
+import h5py
+import time
+import sys
+#sys.path.append('/export/home/lizd20/zhaohw/tddft/')
+#from SF_XTDA import SA_SF_TDA
+
+#angles = np.arange(0,181,5)
+nstates = 5
+funs = ['b3lyp','pbe0','cam-b3lyp']
+#fun = 'b3lyp'
+def update_h5(name,sa,count,excited,vect,ground=None,ds=None):
+    fname = name + '.h5'
+    f = h5py.File(fname,'a')
+    if ground is not None:
+        f['grounds'][count] = ground
+        f['Ds'][count] = ds
+    f['vects'][sa,count] = np.array(vect)
+    f['exciteds'][sa,count] = np.array(excited)
+    f.close()
+    return None 
+def write_h5(R,nstates,name):
+    fname = name + '.h5'
+    len_r = len(R)
+    f = h5py.File(fname,'w')
+    f['R'] = R
+    f['grounds'] = np.zeros(len_r)
+    f['vects'] = np.zeros((5,len_r,nstates,5))
+    f['exciteds'] = np.zeros((5,len_r,nstates))
+    f['Ds'] = np.zeros((len_r,nstates))
+    f.close()
+    return None
+
+def read_xyz(name):
+    filename = '/export/home/lizd20/zhaohw/tddft/tadf/46_IST/xyz/'+ name
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+    atoms = []
+    for line in lines[2:]:
+        parts = line.split()
+        if len(parts) >=4:
+            atom = parts[0]
+            coords = list(map(float, parts[1:4]))
+            atoms.append((atom,coords))
+    return atoms
+mols = [str(i)+'_optimized.xyz' for i in np.arange(46)+1][:4]
+#mols = ['17_optimized.xyz','28_optimized.xyz']
+#mols = ['44_optimized.xyz']
+for fun in funs:
+    for i,mol_i in enumerate(mols):
+        atoms = read_xyz(mol_i)    
+        mol = gto.M(                 
+              atom = atoms,
+          basis = 'aug-cc-pvdz',
+          charge = 0,
+          spin = 0, 
+          verbose = 4,
+     #     symmetry=True,
+        )    
+        start = time.time()
+        if fun == 'hf':
+            mf = scf.RHF(mol)
+        else:
+            mf = dft.RKS(mol)
+            mf.xc = fun
+    #mf.grids.level = 6
+    #mf.irrep_nelec = {'A1': (4,2), 'B1':(1,1), 'B2':(1,1)}
+    #mf.level_shift = 0.2
+    #mf.grids.atom_grid = (99,590)
+    #mf = mf.newton()
+    #mf.max_cycle = 100
+    #mf.diis_damp = 0.5
+    #mf.diis_start_cycle = 3
+    #mf.init_guess = 'huckel'
+        #if fun != 'b3lyp':
+        #    data = scf.chkfile.load(f'chk_file/mol{i+1}.chk','scf')
+        #    mf.mo_coeff = data['mo_coeff']
+        #    mf.mo_occ = data['mo_occ']
+        #    mf.mo_energy = data['mo_energy']
+        #else:
+        #    mf.chkfile = f'chk_file/mol{i+1}.chk'
+        mf.kernel()
+    #mf.analyze()
+        if not mf.converged:
+            mf = mf.newton()
+            mf.kernel()
+        assert mf.converged
+        mo, _, stable, _ = mf.stability(return_status=True)
+        if stable is False:
+            dm = mf.make_rdm1(mo, mf.mo_occ)
+            mf.kernel(dm0=dm)
+            mo, _, stable, _ = mf.stability(nroots=5,tol=1e-7,return_status=True)
+            assert stable
+        
+        print(f'fun_{fun}')
+        print(mol_i,' Singlet')
+        mytd = tddft.TDA(mf)
+        mytd.nstates = nstates
+        mytd.kernel()
+        mytd.analyze()
+
+        print(mol_i,' Triplet')
+        mytd2 = tddft.TDA(mf)
+        mytd2.nstates = nstates
+        mytd2.singlet = False
+        mytd2.kernel()
+        mytd2.analyze()
+
+print('Done')
+#INFO: ******************** input file end ********************
+
+
+System: uname_result(system='Linux', node='mgmt', release='3.10.0-1160.el7.x86_64', version='#1 SMP Mon Oct 19 16:18:59 UTC 2020', machine='x86_64')  Threads 16
+Python 3.9.0 (default, Nov 15 2020, 14:28:56) 
+[GCC 7.3.0]
+numpy 1.26.4  scipy 1.13.1  h5py 3.11.0
+Date: Sat Feb 28 02:54:08 2026
+PySCF version 2.11.0
+PySCF path  /export/home/lizd20/anaconda3/envs/zhw/lib/python3.9/site-packages/pyscf
+
+[CONFIG] conf_file None
+[INPUT] verbose = 4
+[INPUT] num. atoms = 20
+[INPUT] num. electrons = 86
+[INPUT] charge = 0
+[INPUT] spin (= nelec alpha-beta = 2S) = 0
+[INPUT] symmetry False subgroup None
+[INPUT] Mole.unit = angstrom
+[INPUT] Symbol           X                Y                Z      unit          X                Y                Z       unit  Magmom
+[INPUT]  1 C      2.104057000000   1.274661000000   0.000050000000 AA    3.976091480474   2.408760191664   0.000094486306 Bohr   0.0
+[INPUT]  2 N      1.440600000000   2.448732000000  -0.000252000000 AA    2.722339455048   4.627432832458  -0.000476210983 Bohr   0.0
+[INPUT]  3 C      0.088078000000   2.457887000000   0.000051000000 AA    0.166443297599   4.644733275129   0.000096376032 Bohr   0.0
+[INPUT]  4 C     -0.735933000000   1.307833000000   0.000763000000 AA   -1.390711816030   2.471446186668   0.001441861033 Bohr   0.0
+[INPUT]  5 C     -2.152039000000   1.243466000000  -0.000195000000 AA   -4.066764319383   2.349810185208  -0.000368496594 Bohr   0.0
+[INPUT]  6 C     -2.820852000000   0.001229000000  -0.000448000000 AA   -5.330637717932   0.002322473407  -0.000846597304 Bohr   0.0
+[INPUT]  7 C     -2.153142000000  -1.241621000000   0.000156000000 AA   -4.068848687298  -2.346323640509   0.000294797275 Bohr   0.0
+[INPUT]  8 C     -0.737165000000  -1.307147000000   0.000640000000 AA   -1.393039958615  -2.470149834547   0.001209424720 Bohr   0.0
+[INPUT]  9 B     -0.004808000000   0.000002000000   0.000756000000 AA   -0.009085803207   0.000003779452   0.001428632950 Bohr   0.0
+[INPUT] 10 C      1.487618000000  -0.000679000000   0.000021000000 AA    2.811190597973  -0.001283124039   0.000039684249 Bohr   0.0
+[INPUT] 11 C      2.102941000000  -1.276497000000  -0.000289000000 AA    3.973982546119  -2.412229728829  -0.000546130850 Bohr   0.0
+[INPUT] 12 N      1.438422000000  -2.449987000000  -0.000238000000 AA    2.718223631549  -4.629804438745  -0.000449754818 Bohr   0.0
+[INPUT] 13 C      0.085910000000  -2.457932000000  -0.000084000000 AA    0.162346371361  -4.644818312804  -0.000158736994 Bohr   0.0
+[INPUT] 14 H      3.199670000000   1.379957000000   0.000399000000 AA    6.046499988987   2.607740793676   0.000754000724 Bohr   0.0
+[INPUT] 15 H     -0.348542000000   3.468416000000  -0.001354000000 AA   -0.658648922908   6.554356326059  -0.002558689173 Bohr   0.0
+[INPUT] 16 H     -2.764406000000   2.154740000000  -0.000904000000 AA   -5.223970237104   4.071868469645  -0.001708312417 Bohr   0.0
+[INPUT] 17 H     -3.913207000000   0.001707000000  -0.001195000000 AA   -7.394889498731   0.003225762495  -0.002258222719 Bohr   0.0
+[INPUT] 18 H     -2.766300000000  -2.152350000000   0.000362000000 AA   -5.227549378384  -4.067352024208   0.000684080857 Bohr   0.0
+[INPUT] 19 H      3.198447000000  -1.382827000000  -0.000728000000 AA    6.044188853937  -2.613164307654  -0.001375720619 Bohr   0.0
+[INPUT] 20 H     -0.351617000000  -3.468079000000  -0.000918000000 AA   -0.664459830741  -6.553719488355  -0.001734768582 Bohr   0.0
+
+nuclear repulsion = 674.02394762686
+number of shells = 139
+number of NR pGTOs = 532
+number of NR cGTOs = 362
+basis = aug-cc-pvdz
+ecp = {}
+CPU time:    362488.41
+
+
+******** <class 'pyscf.dft.rks.RKS'> ********
+method = RKS
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-09
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/tmp42joq9wc
+max_memory 4000 MB (current use 232 MB)
+XC library pyscf.dft.libxc version 7.0.0
+    S. Lehtola, C. Steigemann, M. J.T. Oliveira, and M. A.L. Marques.,  SoftwareX 7, 1–5 (2018)
+XC functionals = cam-b3lyp
+    T. Yanai, D. P. Tew, and N. C. Handy.,  Chem. Phys. Lett. 393, 51 (2004)
+radial grids: 
+    Treutler-Ahlrichs [JCP 102, 346 (1995); DOI:10.1063/1.469408] (M4) radial grids
+    
+becke partition: Becke, JCP 88, 2547 (1988); DOI:10.1063/1.454033
+pruning grids: <function nwchem_prune at 0x7f2126ee1550>
+grids dens level: 3
+symmetrized grids: False
+atomic radii adjust function: <function treutler_atomic_radii_adjust at 0x7f2127521ca0>
+small_rho_cutoff = 1e-07
+Set gradient conv threshold to 3.16228e-05
+Initial guess from minao.
+tot grids = 251688
+init E= -522.253017496771
+  HOMO = -0.265575816821804  LUMO = -0.166817809180431
+cycle= 1 E= -519.261197997121  delta_E= 2.99  |g|= 0.599  |ddm|= 44.8
+  HOMO = -0.233996371734285  LUMO = -0.114231705373341
+cycle= 2 E= -519.270905924107  delta_E= -0.00971  |g|= 0.611  |ddm|= 7.35
+  HOMO = -0.288185444582609  LUMO = -0.11258864733786
+cycle= 3 E= -519.358065507261  delta_E= -0.0872  |g|= 0.0574  |ddm|= 3.57
+  HOMO = -0.284895499847087  LUMO = -0.111249380310446
+cycle= 4 E= -519.358742142343  delta_E= -0.000677  |g|= 0.0305  |ddm|= 0.721
+  HOMO = -0.285145036400015  LUMO = -0.111681142577476
+cycle= 5 E= -519.358961414356  delta_E= -0.000219  |g|= 0.0111  |ddm|= 0.201
+  HOMO = -0.285305813880333  LUMO = -0.111751334793436
+cycle= 6 E= -519.358996216897  delta_E= -3.48e-05  |g|= 0.00187  |ddm|= 0.0685
+  HOMO = -0.285247515957316  LUMO = -0.111612972896062
+cycle= 7 E= -519.358997287069  delta_E= -1.07e-06  |g|= 0.000733  |ddm|= 0.0159
+  HOMO = -0.285234410005842  LUMO = -0.111615157518665
+cycle= 8 E= -519.358997479781  delta_E= -1.93e-07  |g|= 0.00022  |ddm|= 0.00681
+  HOMO = -0.285266710725  LUMO = -0.111635787165199
+cycle= 9 E= -519.358997500884  delta_E= -2.11e-08  |g|= 0.000103  |ddm|= 0.00234
+  HOMO = -0.285264134345414  LUMO = -0.111632274856233
+cycle= 10 E= -519.358997505062  delta_E= -4.18e-09  |g|= 6.02e-05  |ddm|= 0.00106
+  HOMO = -0.285263055277748  LUMO = -0.111629869003503
+cycle= 11 E= -519.358997506269  delta_E= -1.21e-09  |g|= 1.28e-05  |ddm|= 0.000452
+  HOMO = -0.285264540742608  LUMO = -0.111630590458144
+cycle= 12 E= -519.358997506403  delta_E= -1.33e-10  |g|= 5.99e-06  |ddm|= 0.000181
+  HOMO = -0.285264580452022  LUMO = -0.11163070719037
+Extra cycle  E= -519.358997506406  delta_E= -2.96e-12  |g|= 7.06e-06  |ddm|= 7.96e-05
+converged SCF energy = -519.358997506406
+rhf_internal: lowest eigs of H = [0.2179126  0.35483893 0.43739224]
+<class 'pyscf.dft.rks.RKS'> wavefunction is stable in the internal stability analysis
+fun_cam-b3lyp
+1_optimized.xyz  Singlet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 singlet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmp42joq9wc
+max_memory 4000 MB (current use 232 MB)
+
+
+Excited State energies (eV)
+[1.60253014 2.40801399 2.96167072 3.8015765  3.9103369 ]
+
+** Singlet excitation energies and oscillator strengths **
+Excited State   1:      1.60253 eV    773.68 nm  f=0.0037
+      41 -> 44       -0.11724
+      43 -> 44        0.69095
+Excited State   2:      2.40801 eV    514.88 nm  f=0.0000
+      42 -> 44        0.69160
+Excited State   3:      2.96167 eV    418.63 nm  f=0.0000
+      39 -> 44        0.68484
+      42 -> 47       -0.12090
+Excited State   4:      3.80158 eV    326.14 nm  f=0.0000
+      38 -> 44        0.68794
+      42 -> 47        0.13167
+Excited State   5:      3.91034 eV    317.07 nm  f=0.3087
+      41 -> 44        0.66184
+      43 -> 44        0.10481
+      43 -> 45        0.16702
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.0001     -0.3066     -0.0000      0.0940      0.0037
+  2         0.0007      0.0003      0.0036      0.0000      0.0000
+  3        -0.0012     -0.0029      0.0000      0.0000      0.0000
+  4         0.0013      0.0037     -0.0000      0.0000      0.0000
+  5        -0.0008     -1.7950     -0.0000      3.2220      0.3087
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.0000      0.0411      0.0000      0.0017      0.0191
+  2        -0.0001     -0.0000     -0.0019      0.0000      0.0000
+  3         0.0001      0.0003     -0.0000      0.0000      0.0000
+  4        -0.0001     -0.0002     -0.0000      0.0000      0.0000
+  5         0.0000      0.0862      0.0000      0.0074      0.0345
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1        -0.0003      0.0001     -2.1789
+  2         0.0000     -0.0867     -0.0008
+  3         0.0005      0.0001      0.0012
+  4        -0.2419      0.0002      0.0007
+  5         0.0001      0.0004      0.1249
+1_optimized.xyz  Triplet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 triplet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmp42joq9wc
+max_memory 4000 MB (current use 232 MB)
+
+
+Excited State energies (eV)
+[1.37414141 2.24272145 2.31590445 2.40856491 2.85951758]
+
+** Triplet excitation energies and oscillator strengths **
+Excited State   1:      1.37414 eV    902.27 nm  f=0.0000
+      43 -> 44       -0.69910
+Excited State   2:      2.24272 eV    552.83 nm  f=0.0000
+      41 -> 44       -0.68848
+Excited State   3:      2.31590 eV    535.36 nm  f=0.0000
+      42 -> 44        0.68932
+Excited State   4:      2.40856 eV    514.76 nm  f=0.0000
+      40 -> 44       -0.69018
+Excited State   5:      2.85952 eV    433.58 nm  f=0.0000
+      39 -> 44       -0.68204
+      42 -> 47        0.12786
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.0000      0.0000      0.0000      0.0000      0.0000
+  2         0.0000      0.0000      0.0000      0.0000      0.0000
+  3         0.0000      0.0000      0.0000      0.0000      0.0000
+  4         0.0000      0.0000      0.0000      0.0000      0.0000
+  5         0.0000      0.0000      0.0000      0.0000      0.0000
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  2        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  3        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  4        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  5        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1        -0.0000     -0.0000     -0.0000
+  2        -0.0000     -0.0000     -0.0000
+  3        -0.0000     -0.0000     -0.0000
+  4        -0.0000     -0.0000     -0.0000
+  5        -0.0000     -0.0000     -0.0000
+#INFO: **** input file is /export/home/lizd20/zhaohw/tddft/tadf/46_IST/tda/tda.py ****
+# source /export/home/lizd20/clf/clf_jax/bin/activate
+
+from pyscf import gto, dft, scf, ao2mo, lib, tddft,fci
+from pyscf.fci import addons
+import numpy as np
+from pyscf.dft import numint
+import scipy
+from functools import reduce
+import h5py
+import time
+import sys
+#sys.path.append('/export/home/lizd20/zhaohw/tddft/')
+#from SF_XTDA import SA_SF_TDA
+
+#angles = np.arange(0,181,5)
+nstates = 5
+funs = ['b3lyp','pbe0','cam-b3lyp']
+#fun = 'b3lyp'
+def update_h5(name,sa,count,excited,vect,ground=None,ds=None):
+    fname = name + '.h5'
+    f = h5py.File(fname,'a')
+    if ground is not None:
+        f['grounds'][count] = ground
+        f['Ds'][count] = ds
+    f['vects'][sa,count] = np.array(vect)
+    f['exciteds'][sa,count] = np.array(excited)
+    f.close()
+    return None 
+def write_h5(R,nstates,name):
+    fname = name + '.h5'
+    len_r = len(R)
+    f = h5py.File(fname,'w')
+    f['R'] = R
+    f['grounds'] = np.zeros(len_r)
+    f['vects'] = np.zeros((5,len_r,nstates,5))
+    f['exciteds'] = np.zeros((5,len_r,nstates))
+    f['Ds'] = np.zeros((len_r,nstates))
+    f.close()
+    return None
+
+def read_xyz(name):
+    filename = '/export/home/lizd20/zhaohw/tddft/tadf/46_IST/xyz/'+ name
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+    atoms = []
+    for line in lines[2:]:
+        parts = line.split()
+        if len(parts) >=4:
+            atom = parts[0]
+            coords = list(map(float, parts[1:4]))
+            atoms.append((atom,coords))
+    return atoms
+mols = [str(i)+'_optimized.xyz' for i in np.arange(46)+1][:4]
+#mols = ['17_optimized.xyz','28_optimized.xyz']
+#mols = ['44_optimized.xyz']
+for fun in funs:
+    for i,mol_i in enumerate(mols):
+        atoms = read_xyz(mol_i)    
+        mol = gto.M(                 
+              atom = atoms,
+          basis = 'aug-cc-pvdz',
+          charge = 0,
+          spin = 0, 
+          verbose = 4,
+     #     symmetry=True,
+        )    
+        start = time.time()
+        if fun == 'hf':
+            mf = scf.RHF(mol)
+        else:
+            mf = dft.RKS(mol)
+            mf.xc = fun
+    #mf.grids.level = 6
+    #mf.irrep_nelec = {'A1': (4,2), 'B1':(1,1), 'B2':(1,1)}
+    #mf.level_shift = 0.2
+    #mf.grids.atom_grid = (99,590)
+    #mf = mf.newton()
+    #mf.max_cycle = 100
+    #mf.diis_damp = 0.5
+    #mf.diis_start_cycle = 3
+    #mf.init_guess = 'huckel'
+        #if fun != 'b3lyp':
+        #    data = scf.chkfile.load(f'chk_file/mol{i+1}.chk','scf')
+        #    mf.mo_coeff = data['mo_coeff']
+        #    mf.mo_occ = data['mo_occ']
+        #    mf.mo_energy = data['mo_energy']
+        #else:
+        #    mf.chkfile = f'chk_file/mol{i+1}.chk'
+        mf.kernel()
+    #mf.analyze()
+        if not mf.converged:
+            mf = mf.newton()
+            mf.kernel()
+        assert mf.converged
+        mo, _, stable, _ = mf.stability(return_status=True)
+        if stable is False:
+            dm = mf.make_rdm1(mo, mf.mo_occ)
+            mf.kernel(dm0=dm)
+            mo, _, stable, _ = mf.stability(nroots=5,tol=1e-7,return_status=True)
+            assert stable
+        
+        print(f'fun_{fun}')
+        print(mol_i,' Singlet')
+        mytd = tddft.TDA(mf)
+        mytd.nstates = nstates
+        mytd.kernel()
+        mytd.analyze()
+
+        print(mol_i,' Triplet')
+        mytd2 = tddft.TDA(mf)
+        mytd2.nstates = nstates
+        mytd2.singlet = False
+        mytd2.kernel()
+        mytd2.analyze()
+
+print('Done')
+#INFO: ******************** input file end ********************
+
+
+System: uname_result(system='Linux', node='mgmt', release='3.10.0-1160.el7.x86_64', version='#1 SMP Mon Oct 19 16:18:59 UTC 2020', machine='x86_64')  Threads 16
+Python 3.9.0 (default, Nov 15 2020, 14:28:56) 
+[GCC 7.3.0]
+numpy 1.26.4  scipy 1.13.1  h5py 3.11.0
+Date: Sat Feb 28 04:05:45 2026
+PySCF version 2.11.0
+PySCF path  /export/home/lizd20/anaconda3/envs/zhw/lib/python3.9/site-packages/pyscf
+
+[CONFIG] conf_file None
+[INPUT] verbose = 4
+[INPUT] num. atoms = 20
+[INPUT] num. electrons = 102
+[INPUT] charge = 0
+[INPUT] spin (= nelec alpha-beta = 2S) = 0
+[INPUT] symmetry False subgroup None
+[INPUT] Mole.unit = angstrom
+[INPUT] Symbol           X                Y                Z      unit          X                Y                Z       unit  Magmom
+[INPUT]  1 C      2.553158000000  -1.223881000000   0.000000000000 AA    4.824769372742  -2.312799899059   0.000000000000 Bohr   0.0
+[INPUT]  2 C      3.235434000000   0.001261000000   0.000001000000 AA    6.114084154106   0.002382944643   0.000001889726 Bohr   0.0
+[INPUT]  3 C      2.551676000000   1.225638000000   0.000000000000 AA    4.821968798626   2.316120147860   0.000000000000 Bohr   0.0
+[INPUT]  4 C      1.135288000000   1.302960000000   0.000001000000 AA    2.145383392505   2.462237551263   0.000001889726 Bohr   0.0
+[INPUT]  5 B      0.339345000000  -0.000185000000   0.000006000000 AA    0.641269111741  -0.000349599333   0.000011338357 Bohr   0.0
+[INPUT]  6 C      1.137135000000  -1.301990000000  -0.000001000000 AA    2.148873716657  -2.460404516922  -0.000001889726 Bohr   0.0
+[INPUT]  7 C      0.491733000000  -2.564586000000  -0.000005000000 AA    0.929240696411  -4.846365162894  -0.000009448631 Bohr   0.0
+[INPUT]  8 C     -0.893796000000  -2.748134000000  -0.000003000000 AA   -1.689029651232  -5.193220613605  -0.000005669178 Bohr   0.0
+[INPUT]  9 P     -2.124485000000  -1.497144000000   0.000003000000 AA   -4.014694805747  -2.829192129036   0.000005669178 Bohr   0.0
+[INPUT] 10 C     -1.180326000000  -0.000528000000   0.000003000000 AA   -2.230492877703  -0.000997775394   0.000005669178 Bohr   0.0
+[INPUT] 11 P     -2.125502000000   1.495602000000  -0.000002000000 AA   -4.016616657215   2.826278171352  -0.000003779452 Bohr   0.0
+[INPUT] 12 C     -0.895704000000   2.747519000000  -0.000001000000 AA   -1.692635248677   5.192058432039  -0.000001889726 Bohr   0.0
+[INPUT] 13 C      0.489853000000   2.565067000000  -0.000001000000 AA    0.925688011297   4.847274121160  -0.000001889726 Bohr   0.0
+[INPUT] 14 H      3.147990000000  -2.146606000000   0.000001000000 AA    5.948838942870  -4.056497437348   0.000001889726 Bohr   0.0
+[INPUT] 15 H      4.327545000000   0.002144000000   0.000002000000 AA    8.177874841731   0.004051572811   0.000003779452 Bohr   0.0
+[INPUT] 16 H      3.145707000000   2.148939000000  -0.000003000000 AA    5.944524698127   4.060906168397  -0.000005669178 Bohr   0.0
+[INPUT] 17 H      1.118352000000  -3.468723000000  -0.000007000000 AA    2.113378990860  -6.554936471980  -0.000013228083 Bohr   0.0
+[INPUT] 18 H     -1.272943000000  -3.775322000000  -0.000004000000 AA   -2.405513642182  -7.134324612045  -0.000007558904 Bohr   0.0
+[INPUT] 19 H     -1.276275000000   3.774191000000  -0.000002000000 AA   -2.411810209629   7.132187331798  -0.000003779452 Bohr   0.0
+[INPUT] 20 H      1.116002000000   3.469465000000  -0.000001000000 AA    2.108938134467   6.556338648764  -0.000001889726 Bohr   0.0
+
+nuclear repulsion = 848.037918177854
+number of shells = 139
+number of NR pGTOs = 562
+number of NR cGTOs = 370
+basis = aug-cc-pvdz
+ecp = {}
+CPU time:    428082.60
+
+
+******** <class 'pyscf.dft.rks.RKS'> ********
+method = RKS
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-09
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/tmp84i8p74f
+max_memory 4000 MB (current use 277 MB)
+XC library pyscf.dft.libxc version 7.0.0
+    S. Lehtola, C. Steigemann, M. J.T. Oliveira, and M. A.L. Marques.,  SoftwareX 7, 1–5 (2018)
+XC functionals = cam-b3lyp
+    T. Yanai, D. P. Tew, and N. C. Handy.,  Chem. Phys. Lett. 393, 51 (2004)
+radial grids: 
+    Treutler-Ahlrichs [JCP 102, 346 (1995); DOI:10.1063/1.469408] (M4) radial grids
+    
+becke partition: Becke, JCP 88, 2547 (1988); DOI:10.1063/1.454033
+pruning grids: <function nwchem_prune at 0x7f2126ee1550>
+grids dens level: 3
+symmetrized grids: False
+atomic radii adjust function: <function treutler_atomic_radii_adjust at 0x7f2127521ca0>
+small_rho_cutoff = 1e-07
+Set gradient conv threshold to 3.16228e-05
+Initial guess from minao.
+tot grids = 262248
+init E= -1095.26709857594
+  HOMO = -0.248538954321952  LUMO = -0.17941170173215
+cycle= 1 E= -1092.53752321132  delta_E= 2.73  |g|= 0.472  |ddm|= 67.3
+  HOMO = -0.209317630854946  LUMO = -0.0982187738057187
+cycle= 2 E= -1092.52807274562  delta_E= 0.00945  |g|= 0.523  |ddm|= 8.93
+  HOMO = -0.267662660099255  LUMO = -0.112830309362334
+cycle= 3 E= -1092.60496906189  delta_E= -0.0769  |g|= 0.0942  |ddm|= 3.21
+  HOMO = -0.265613784857938  LUMO = -0.111876783150523
+cycle= 4 E= -1092.60703075177  delta_E= -0.00206  |g|= 0.0501  |ddm|= 0.915
+  HOMO = -0.263701837070427  LUMO = -0.111600274348448
+cycle= 5 E= -1092.60767347235  delta_E= -0.000643  |g|= 0.00645  |ddm|= 0.619
+  HOMO = -0.263602762572951  LUMO = -0.110960585222735
+cycle= 6 E= -1092.60768790689  delta_E= -1.44e-05  |g|= 0.00389  |ddm|= 0.129
+  HOMO = -0.263582519961399  LUMO = -0.110982952036199
+cycle= 7 E= -1092.60769288457  delta_E= -4.98e-06  |g|= 0.000979  |ddm|= 0.0329
+  HOMO = -0.263625431076674  LUMO = -0.111020118989171
+cycle= 8 E= -1092.60769347257  delta_E= -5.88e-07  |g|= 0.000526  |ddm|= 0.0201
+  HOMO = -0.263585692235201  LUMO = -0.110986814628963
+cycle= 9 E= -1092.60769361571  delta_E= -1.43e-07  |g|= 0.000201  |ddm|= 0.00864
+  HOMO = -0.263579738353103  LUMO = -0.110974435816017
+cycle= 10 E= -1092.60769363444  delta_E= -1.87e-08  |g|= 0.000101  |ddm|= 0.00363
+  HOMO = -0.263579052946918  LUMO = -0.110978165869505
+cycle= 11 E= -1092.607693639  delta_E= -4.56e-09  |g|= 2.83e-05  |ddm|= 0.00154
+  HOMO = -0.263581256715694  LUMO = -0.110979614096442
+cycle= 12 E= -1092.60769363921  delta_E= -2.13e-10  |g|= 2.25e-05  |ddm|= 0.000372
+  HOMO = -0.263577515318652  LUMO = -0.110978456884734
+Extra cycle  E= -1092.60769363921  delta_E= 7.5e-12  |g|= 2.53e-05  |ddm|= 0.000416
+converged SCF energy = -1092.60769363921
+rhf_internal: lowest eigs of H = [0.18108658 0.38816888 0.47177556]
+<class 'pyscf.dft.rks.RKS'> wavefunction is stable in the internal stability analysis
+fun_cam-b3lyp
+2_optimized.xyz  Singlet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 singlet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmp84i8p74f
+max_memory 4000 MB (current use 233 MB)
+
+
+Excited State energies (eV)
+[1.32717001 2.53471071 3.14910323 3.34166156 3.55511315]
+
+** Singlet excitation energies and oscillator strengths **
+Excited State   1:      1.32717 eV    934.20 nm  f=0.0030
+      48 -> 52        0.11350
+      51 -> 52       -0.69111
+Excited State   2:      2.53471 eV    489.15 nm  f=0.0000
+      49 -> 52       -0.69686
+Excited State   3:      3.14910 eV    393.71 nm  f=0.0059
+      46 -> 52       -0.13527
+      47 -> 52        0.68521
+Excited State   4:      3.34166 eV    371.03 nm  f=0.2418
+      50 -> 52        0.65671
+      51 -> 53        0.22079
+Excited State   5:      3.55511 eV    348.75 nm  f=0.2723
+      48 -> 52        0.66040
+      51 -> 52        0.11437
+      51 -> 54        0.16355
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.0003      0.3040     -0.0000      0.0924      0.0030
+  2         0.0000      0.0000      0.0003      0.0000      0.0000
+  3        -0.0000     -0.0000      0.2762      0.0763      0.0059
+  4        -1.7185     -0.0011     -0.0000      2.9533      0.2418
+  5         0.0008     -1.7680     -0.0000      3.1260      0.2723
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.0000     -0.0325      0.0000      0.0011      0.0144
+  2        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  3         0.0000     -0.0000     -0.0265      0.0007      0.0041
+  4         0.1220      0.0001      0.0000      0.0149      0.0809
+  5        -0.0000      0.0843      0.0000      0.0071      0.0363
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1        -0.0000      0.0000     -2.0317
+  2         0.0150     -0.0004     -0.0000
+  3        -0.0000     -0.4815      0.0000
+  4         0.0000      0.0000      0.0005
+  5         0.0000      0.0000     -0.1624
+2_optimized.xyz  Triplet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 triplet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmp84i8p74f
+max_memory 4000 MB (current use 233 MB)
+
+
+Excited State energies (eV)
+[1.05533779 1.87058043 2.0908488  2.15569731 2.61926412]
+
+** Triplet excitation energies and oscillator strengths **
+Excited State   1:      1.05534 eV   1174.83 nm  f=0.0000
+      51 -> 52        0.69869
+Excited State   2:      1.87058 eV    662.81 nm  f=0.0000
+      50 -> 52        0.68531
+      51 -> 53       -0.12506
+Excited State   3:      2.09085 eV    592.99 nm  f=0.0000
+      47 -> 53        0.10449
+      49 -> 52        0.67596
+      49 -> 54        0.12278
+Excited State   4:      2.15570 eV    575.15 nm  f=0.0000
+      48 -> 52       -0.69304
+Excited State   5:      2.61926 eV    473.36 nm  f=0.0000
+      46 -> 52        0.19872
+      47 -> 52        0.62291
+      47 -> 54        0.11279
+      49 -> 53        0.19383
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.0000      0.0000      0.0000      0.0000      0.0000
+  2         0.0000      0.0000      0.0000      0.0000      0.0000
+  3         0.0000      0.0000      0.0000      0.0000      0.0000
+  4         0.0000      0.0000      0.0000      0.0000      0.0000
+  5         0.0000      0.0000      0.0000      0.0000      0.0000
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  2        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  3        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  4        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  5        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1        -0.0000     -0.0000     -0.0000
+  2        -0.0000     -0.0000     -0.0000
+  3        -0.0000     -0.0000     -0.0000
+  4        -0.0000     -0.0000     -0.0000
+  5        -0.0000     -0.0000     -0.0000
+#INFO: **** input file is /export/home/lizd20/zhaohw/tddft/tadf/46_IST/tda/tda.py ****
+# source /export/home/lizd20/clf/clf_jax/bin/activate
+
+from pyscf import gto, dft, scf, ao2mo, lib, tddft,fci
+from pyscf.fci import addons
+import numpy as np
+from pyscf.dft import numint
+import scipy
+from functools import reduce
+import h5py
+import time
+import sys
+#sys.path.append('/export/home/lizd20/zhaohw/tddft/')
+#from SF_XTDA import SA_SF_TDA
+
+#angles = np.arange(0,181,5)
+nstates = 5
+funs = ['b3lyp','pbe0','cam-b3lyp']
+#fun = 'b3lyp'
+def update_h5(name,sa,count,excited,vect,ground=None,ds=None):
+    fname = name + '.h5'
+    f = h5py.File(fname,'a')
+    if ground is not None:
+        f['grounds'][count] = ground
+        f['Ds'][count] = ds
+    f['vects'][sa,count] = np.array(vect)
+    f['exciteds'][sa,count] = np.array(excited)
+    f.close()
+    return None 
+def write_h5(R,nstates,name):
+    fname = name + '.h5'
+    len_r = len(R)
+    f = h5py.File(fname,'w')
+    f['R'] = R
+    f['grounds'] = np.zeros(len_r)
+    f['vects'] = np.zeros((5,len_r,nstates,5))
+    f['exciteds'] = np.zeros((5,len_r,nstates))
+    f['Ds'] = np.zeros((len_r,nstates))
+    f.close()
+    return None
+
+def read_xyz(name):
+    filename = '/export/home/lizd20/zhaohw/tddft/tadf/46_IST/xyz/'+ name
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+    atoms = []
+    for line in lines[2:]:
+        parts = line.split()
+        if len(parts) >=4:
+            atom = parts[0]
+            coords = list(map(float, parts[1:4]))
+            atoms.append((atom,coords))
+    return atoms
+mols = [str(i)+'_optimized.xyz' for i in np.arange(46)+1][:4]
+#mols = ['17_optimized.xyz','28_optimized.xyz']
+#mols = ['44_optimized.xyz']
+for fun in funs:
+    for i,mol_i in enumerate(mols):
+        atoms = read_xyz(mol_i)    
+        mol = gto.M(                 
+              atom = atoms,
+          basis = 'aug-cc-pvdz',
+          charge = 0,
+          spin = 0, 
+          verbose = 4,
+     #     symmetry=True,
+        )    
+        start = time.time()
+        if fun == 'hf':
+            mf = scf.RHF(mol)
+        else:
+            mf = dft.RKS(mol)
+            mf.xc = fun
+    #mf.grids.level = 6
+    #mf.irrep_nelec = {'A1': (4,2), 'B1':(1,1), 'B2':(1,1)}
+    #mf.level_shift = 0.2
+    #mf.grids.atom_grid = (99,590)
+    #mf = mf.newton()
+    #mf.max_cycle = 100
+    #mf.diis_damp = 0.5
+    #mf.diis_start_cycle = 3
+    #mf.init_guess = 'huckel'
+        #if fun != 'b3lyp':
+        #    data = scf.chkfile.load(f'chk_file/mol{i+1}.chk','scf')
+        #    mf.mo_coeff = data['mo_coeff']
+        #    mf.mo_occ = data['mo_occ']
+        #    mf.mo_energy = data['mo_energy']
+        #else:
+        #    mf.chkfile = f'chk_file/mol{i+1}.chk'
+        mf.kernel()
+    #mf.analyze()
+        if not mf.converged:
+            mf = mf.newton()
+            mf.kernel()
+        assert mf.converged
+        mo, _, stable, _ = mf.stability(return_status=True)
+        if stable is False:
+            dm = mf.make_rdm1(mo, mf.mo_occ)
+            mf.kernel(dm0=dm)
+            mo, _, stable, _ = mf.stability(nroots=5,tol=1e-7,return_status=True)
+            assert stable
+        
+        print(f'fun_{fun}')
+        print(mol_i,' Singlet')
+        mytd = tddft.TDA(mf)
+        mytd.nstates = nstates
+        mytd.kernel()
+        mytd.analyze()
+
+        print(mol_i,' Triplet')
+        mytd2 = tddft.TDA(mf)
+        mytd2.nstates = nstates
+        mytd2.singlet = False
+        mytd2.kernel()
+        mytd2.analyze()
+
+print('Done')
+#INFO: ******************** input file end ********************
+
+
+System: uname_result(system='Linux', node='mgmt', release='3.10.0-1160.el7.x86_64', version='#1 SMP Mon Oct 19 16:18:59 UTC 2020', machine='x86_64')  Threads 16
+Python 3.9.0 (default, Nov 15 2020, 14:28:56) 
+[GCC 7.3.0]
+numpy 1.26.4  scipy 1.13.1  h5py 3.11.0
+Date: Sat Feb 28 05:18:00 2026
+PySCF version 2.11.0
+PySCF path  /export/home/lizd20/anaconda3/envs/zhw/lib/python3.9/site-packages/pyscf
+
+[CONFIG] conf_file None
+[INPUT] verbose = 4
+[INPUT] num. atoms = 17
+[INPUT] num. electrons = 126
+[INPUT] charge = 0
+[INPUT] spin (= nelec alpha-beta = 2S) = 0
+[INPUT] symmetry False subgroup None
+[INPUT] Mole.unit = angstrom
+[INPUT] Symbol           X                Y                Z      unit          X                Y                Z       unit  Magmom
+[INPUT]  1 P      1.114276000000   2.496599000000  -0.002003000000 AA    2.105676467176   4.717888352863  -0.003785121428 Bohr   0.0
+[INPUT]  2 P      3.033970000000   1.544870000000   0.002339000000 AA    5.733372370147   2.919381198057   0.004420069405 Bohr   0.0
+[INPUT]  3 C      2.664267000000  -0.172655000000   0.001607000000 AA    5.034734952717  -0.326270664037   0.003036789882 Bohr   0.0
+[INPUT]  4 C      1.450361000000  -0.910481000000   0.000111000000 AA    2.740785071750  -1.720559731620   0.000209759600 Bohr   0.0
+[INPUT]  5 C      1.633787000000  -2.318951000000  -0.000163000000 AA    3.087409975875  -4.382182286286  -0.000308025358 Bohr   0.0
+[INPUT]  6 P      0.434582000000  -3.601831000000  -0.001062000000 AA    0.821240958666  -6.806474136968  -0.002006889144 Bohr   0.0
+[INPUT]  7 C     -1.034678000000  -2.642145000000  -0.000713000000 AA   -1.955258047113  -4.992930431389  -0.001347374727 Bohr   0.0
+[INPUT]  8 C     -1.191667000000  -1.229699000000   0.000025000000 AA   -2.251924261682  -2.323794325652   0.000047243153 Bohr   0.0
+[INPUT]  9 B      0.033617000000  -0.277886000000  -0.000655000000 AA    0.063526923130  -0.525128433851  -0.001237770612 Bohr   0.0
+[INPUT] 10 C     -0.150354000000   1.246182000000  -0.002134000000 AA   -0.284127881733   2.354942681363  -0.004032675550 Bohr   0.0
+[INPUT] 11 P     -1.677670000000   2.160033000000  -0.001908000000 AA   -3.170336827399   4.081870790023  -0.003605597446 Bohr   0.0
+[INPUT] 12 P     -3.313827000000   0.779378000000   0.002850000000 AA   -6.262225454189   1.472810967511   0.005385719455 Bohr   0.0
+[INPUT] 13 C     -2.545518000000  -0.802094000000   0.000868000000 AA   -4.810331865151  -1.515737986157   0.001640282276 Bohr   0.0
+[INPUT] 14 H      3.583028000000  -0.780958000000   0.002876000000 AA    6.770941616648  -1.475796734788   0.005434852334 Bohr   0.0
+[INPUT] 15 H      2.671726000000  -2.682910000000  -0.000157000000 AA    5.048830419880  -5.069965116857  -0.000296687002 Bohr   0.0
+[INPUT] 16 H     -1.956412000000  -3.242232000000  -0.000853000000 AA   -3.697082866813  -6.126930512301  -0.001611936384 Bohr   0.0
+[INPUT] 17 H     -3.293581000000  -1.611142000000   0.000550000000 AA   -6.223966059071  -3.044617127784   0.001039349369 Bohr   0.0
+
+nuclear repulsion = 1148.07754180996
+number of shells = 124
+number of NR pGTOs = 574
+number of NR cGTOs = 355
+basis = aug-cc-pvdz
+ecp = {}
+CPU time:    494792.63
+
+
+******** <class 'pyscf.dft.rks.RKS'> ********
+method = RKS
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-09
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/tmprh9n8ctb
+max_memory 4000 MB (current use 233 MB)
+XC library pyscf.dft.libxc version 7.0.0
+    S. Lehtola, C. Steigemann, M. J.T. Oliveira, and M. A.L. Marques.,  SoftwareX 7, 1–5 (2018)
+XC functionals = cam-b3lyp
+    T. Yanai, D. P. Tew, and N. C. Handy.,  Chem. Phys. Lett. 393, 51 (2004)
+radial grids: 
+    Treutler-Ahlrichs [JCP 102, 346 (1995); DOI:10.1063/1.469408] (M4) radial grids
+    
+becke partition: Becke, JCP 88, 2547 (1988); DOI:10.1063/1.454033
+pruning grids: <function nwchem_prune at 0x7f2126ee1550>
+grids dens level: 3
+symmetrized grids: False
+atomic radii adjust function: <function treutler_atomic_radii_adjust at 0x7f2127521ca0>
+small_rho_cutoff = 1e-07
+Set gradient conv threshold to 3.16228e-05
+Initial guess from minao.
+tot grids = 248008
+init E= -2002.93823899785
+  HOMO = -0.245685465651958  LUMO = -0.188283999951676
+cycle= 1 E= -2000.53963262147  delta_E=  2.4  |g|= 0.345  |ddm|=   31
+  HOMO = -0.256804199569634  LUMO = -0.143452631366755
+cycle= 2 E= -2000.55508367973  delta_E= -0.0155  |g|= 0.322  |ddm|= 3.07
+  HOMO = -0.278300675165638  LUMO = -0.141132385049665
+cycle= 3 E= -2000.5819942045  delta_E= -0.0269  |g|= 0.106  |ddm|= 1.12
+  HOMO = -0.272110217088535  LUMO = -0.134380295890346
+cycle= 4 E= -2000.58484548272  delta_E= -0.00285  |g|= 0.0467  |ddm|= 0.511
+  HOMO = -0.272887615703168  LUMO = -0.137415444511311
+cycle= 5 E= -2000.58553688291  delta_E= -0.000691  |g|= 0.00713  |ddm|= 0.143
+  HOMO = -0.273327864112862  LUMO = -0.13734972189489
+cycle= 6 E= -2000.58555727783  delta_E= -2.04e-05  |g|= 0.00287  |ddm|= 0.0482
+  HOMO = -0.273200522896886  LUMO = -0.137225010877041
+cycle= 7 E= -2000.58556004174  delta_E= -2.76e-06  |g|= 0.00149  |ddm|= 0.0163
+  HOMO = -0.273234232343225  LUMO = -0.137223423666896
+cycle= 8 E= -2000.58556129287  delta_E= -1.25e-06  |g|= 0.000618  |ddm|= 0.0127
+  HOMO = -0.273240310064022  LUMO = -0.137232490688122
+cycle= 9 E= -2000.58556152999  delta_E= -2.37e-07  |g|= 0.00021  |ddm|= 0.00399
+  HOMO = -0.273235737152877  LUMO = -0.137220057881501
+cycle= 10 E= -2000.58556156687  delta_E= -3.69e-08  |g|= 0.000127  |ddm|= 0.00165
+  HOMO = -0.273230138607577  LUMO = -0.137217466807933
+cycle= 11 E= -2000.58556157763  delta_E= -1.08e-08  |g|= 5.09e-05  |ddm|= 0.00075
+  HOMO = -0.273230529834285  LUMO = -0.1372189702927
+cycle= 12 E= -2000.58556158068  delta_E= -3.05e-09  |g|= 2.96e-05  |ddm|= 0.000428
+  HOMO = -0.273229146001194  LUMO = -0.137218256097284
+cycle= 13 E= -2000.58556158168  delta_E= -9.98e-10  |g|= 1.61e-05  |ddm|= 0.000152
+  HOMO = -0.273229790962357  LUMO = -0.137218858206726
+Extra cycle  E= -2000.58556158225  delta_E= -5.71e-10  |g|= 1.86e-05  |ddm|= 0.000136
+converged SCF energy = -2000.58556158225
+rhf_internal: lowest eigs of H = [0.14043295 0.29223144 0.34415931]
+<class 'pyscf.dft.rks.RKS'> wavefunction is stable in the internal stability analysis
+fun_cam-b3lyp
+3_optimized.xyz  Singlet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 singlet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmprh9n8ctb
+max_memory 4000 MB (current use 233 MB)
+
+
+Excited State energies (eV)
+[1.06656625 1.94711094 2.24354901 2.79052181 2.88419576]
+
+** Singlet excitation energies and oscillator strengths **
+Excited State   1:      1.06657 eV   1162.46 nm  f=0.0026
+      63 -> 64        0.69302
+Excited State   2:      1.94711 eV    636.76 nm  f=0.0005
+      61 -> 64       -0.68862
+Excited State   3:      2.24355 eV    552.63 nm  f=0.0000
+      59 -> 64        0.68573
+      59 -> 66        0.10954
+Excited State   4:      2.79052 eV    444.30 nm  f=0.0040
+      57 -> 64       -0.68891
+Excited State   5:      2.88420 eV    429.87 nm  f=0.0001
+      58 -> 64       -0.67341
+      61 -> 65        0.12135
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.3133      0.0363     -0.0001      0.0995      0.0026
+  2         0.0016     -0.0003     -0.1068      0.0114      0.0005
+  3         0.0036     -0.0000     -0.0003      0.0000      0.0000
+  4        -0.0005      0.0088      0.2403      0.0578      0.0040
+  5        -0.0009     -0.0291      0.0012      0.0008      0.0001
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.0351     -0.0040      0.0000      0.0013      0.0213
+  2        -0.0002      0.0002      0.0193      0.0004      0.0035
+  3        -0.0003      0.0000      0.0002      0.0000      0.0000
+  4         0.0001     -0.0010     -0.0270      0.0007      0.0047
+  5         0.0000      0.0028     -0.0002      0.0000      0.0001
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1         0.0001     -0.0006     -1.7855
+  2         0.3513      0.0424     -0.0014
+  3         0.0360     -0.2754     -0.0022
+  4        -0.5909     -0.0721     -0.0001
+  5        -0.0192      0.1420      0.0012
+3_optimized.xyz  Triplet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 triplet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmprh9n8ctb
+max_memory 4000 MB (current use 293 MB)
+
+
+Excited State energies (eV)
+[0.78743046 1.54979147 1.62749796 1.8448137  1.85627436]
+
+** Triplet excitation energies and oscillator strengths **
+Excited State   1:      0.78743 eV   1574.54 nm  f=0.0000
+      63 -> 64        0.69714
+Excited State   2:      1.54979 eV    800.01 nm  f=0.0000
+      62 -> 64        0.67795
+      63 -> 65        0.14059
+Excited State   3:      1.62750 eV    761.81 nm  f=0.0000
+      57 -> 64       -0.18249
+      59 -> 65       -0.13272
+      61 -> 64        0.63817
+      61 -> 66        0.14459
+Excited State   4:      1.84481 eV    672.07 nm  f=0.0000
+      57 -> 65       -0.10738
+      59 -> 64       -0.64912
+      59 -> 66       -0.15998
+      61 -> 65        0.12308
+Excited State   5:      1.85627 eV    667.92 nm  f=0.0000
+      60 -> 64       -0.67545
+      63 -> 66       -0.10100
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.0000      0.0000      0.0000      0.0000      0.0000
+  2         0.0000      0.0000      0.0000      0.0000      0.0000
+  3         0.0000      0.0000      0.0000      0.0000      0.0000
+  4         0.0000      0.0000      0.0000      0.0000      0.0000
+  5         0.0000      0.0000      0.0000      0.0000      0.0000
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  2        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  3        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  4        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  5        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1        -0.0000     -0.0000     -0.0000
+  2        -0.0000     -0.0000     -0.0000
+  3        -0.0000     -0.0000     -0.0000
+  4        -0.0000     -0.0000     -0.0000
+  5        -0.0000     -0.0000     -0.0000
+#INFO: **** input file is /export/home/lizd20/zhaohw/tddft/tadf/46_IST/tda/tda.py ****
+# source /export/home/lizd20/clf/clf_jax/bin/activate
+
+from pyscf import gto, dft, scf, ao2mo, lib, tddft,fci
+from pyscf.fci import addons
+import numpy as np
+from pyscf.dft import numint
+import scipy
+from functools import reduce
+import h5py
+import time
+import sys
+#sys.path.append('/export/home/lizd20/zhaohw/tddft/')
+#from SF_XTDA import SA_SF_TDA
+
+#angles = np.arange(0,181,5)
+nstates = 5
+funs = ['b3lyp','pbe0','cam-b3lyp']
+#fun = 'b3lyp'
+def update_h5(name,sa,count,excited,vect,ground=None,ds=None):
+    fname = name + '.h5'
+    f = h5py.File(fname,'a')
+    if ground is not None:
+        f['grounds'][count] = ground
+        f['Ds'][count] = ds
+    f['vects'][sa,count] = np.array(vect)
+    f['exciteds'][sa,count] = np.array(excited)
+    f.close()
+    return None 
+def write_h5(R,nstates,name):
+    fname = name + '.h5'
+    len_r = len(R)
+    f = h5py.File(fname,'w')
+    f['R'] = R
+    f['grounds'] = np.zeros(len_r)
+    f['vects'] = np.zeros((5,len_r,nstates,5))
+    f['exciteds'] = np.zeros((5,len_r,nstates))
+    f['Ds'] = np.zeros((len_r,nstates))
+    f.close()
+    return None
+
+def read_xyz(name):
+    filename = '/export/home/lizd20/zhaohw/tddft/tadf/46_IST/xyz/'+ name
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+    atoms = []
+    for line in lines[2:]:
+        parts = line.split()
+        if len(parts) >=4:
+            atom = parts[0]
+            coords = list(map(float, parts[1:4]))
+            atoms.append((atom,coords))
+    return atoms
+mols = [str(i)+'_optimized.xyz' for i in np.arange(46)+1][:4]
+#mols = ['17_optimized.xyz','28_optimized.xyz']
+#mols = ['44_optimized.xyz']
+for fun in funs:
+    for i,mol_i in enumerate(mols):
+        atoms = read_xyz(mol_i)    
+        mol = gto.M(                 
+              atom = atoms,
+          basis = 'aug-cc-pvdz',
+          charge = 0,
+          spin = 0, 
+          verbose = 4,
+     #     symmetry=True,
+        )    
+        start = time.time()
+        if fun == 'hf':
+            mf = scf.RHF(mol)
+        else:
+            mf = dft.RKS(mol)
+            mf.xc = fun
+    #mf.grids.level = 6
+    #mf.irrep_nelec = {'A1': (4,2), 'B1':(1,1), 'B2':(1,1)}
+    #mf.level_shift = 0.2
+    #mf.grids.atom_grid = (99,590)
+    #mf = mf.newton()
+    #mf.max_cycle = 100
+    #mf.diis_damp = 0.5
+    #mf.diis_start_cycle = 3
+    #mf.init_guess = 'huckel'
+        #if fun != 'b3lyp':
+        #    data = scf.chkfile.load(f'chk_file/mol{i+1}.chk','scf')
+        #    mf.mo_coeff = data['mo_coeff']
+        #    mf.mo_occ = data['mo_occ']
+        #    mf.mo_energy = data['mo_energy']
+        #else:
+        #    mf.chkfile = f'chk_file/mol{i+1}.chk'
+        mf.kernel()
+    #mf.analyze()
+        if not mf.converged:
+            mf = mf.newton()
+            mf.kernel()
+        assert mf.converged
+        mo, _, stable, _ = mf.stability(return_status=True)
+        if stable is False:
+            dm = mf.make_rdm1(mo, mf.mo_occ)
+            mf.kernel(dm0=dm)
+            mo, _, stable, _ = mf.stability(nroots=5,tol=1e-7,return_status=True)
+            assert stable
+        
+        print(f'fun_{fun}')
+        print(mol_i,' Singlet')
+        mytd = tddft.TDA(mf)
+        mytd.nstates = nstates
+        mytd.kernel()
+        mytd.analyze()
+
+        print(mol_i,' Triplet')
+        mytd2 = tddft.TDA(mf)
+        mytd2.nstates = nstates
+        mytd2.singlet = False
+        mytd2.kernel()
+        mytd2.analyze()
+
+print('Done')
+#INFO: ******************** input file end ********************
+
+
+System: uname_result(system='Linux', node='mgmt', release='3.10.0-1160.el7.x86_64', version='#1 SMP Mon Oct 19 16:18:59 UTC 2020', machine='x86_64')  Threads 16
+Python 3.9.0 (default, Nov 15 2020, 14:28:56) 
+[GCC 7.3.0]
+numpy 1.26.4  scipy 1.13.1  h5py 3.11.0
+Date: Sat Feb 28 06:32:26 2026
+PySCF version 2.11.0
+PySCF path  /export/home/lizd20/anaconda3/envs/zhw/lib/python3.9/site-packages/pyscf
+
+[CONFIG] conf_file None
+[INPUT] verbose = 4
+[INPUT] num. atoms = 21
+[INPUT] num. electrons = 86
+[INPUT] charge = 0
+[INPUT] spin (= nelec alpha-beta = 2S) = 0
+[INPUT] symmetry False subgroup None
+[INPUT] Mole.unit = angstrom
+[INPUT] Symbol           X                Y                Z      unit          X                Y                Z       unit  Magmom
+[INPUT]  1 C     -1.167685000000   2.170478000000   0.000325000000 AA   -2.206604849763   4.101608979394   0.000614160990 Bohr   0.0
+[INPUT]  2 N     -0.003361000000   2.853290000000  -0.000045000000 AA   -0.006351369505   5.391936653960  -0.000085037676 Bohr   0.0
+[INPUT]  3 C      1.162593000000   2.173362000000  -0.000377000000 AA    2.196982364336   4.107058949537  -0.000712426749 Bohr   0.0
+[INPUT]  4 C      1.287372000000   0.763230000000   0.000138000000 AA    2.432780500434   1.442295670052   0.000260782205 Bohr   0.0
+[INPUT]  5 B      0.000020000000  -0.005642000000   0.000094000000 AA    0.000037794522  -0.010661834795   0.000177634256 Bohr   0.0
+[INPUT]  6 C     -1.289223000000   0.760090000000  -0.000159000000 AA   -2.436278383490   1.436361930021  -0.000300466454 Bohr   0.0
+[INPUT]  7 C     -2.491908000000   0.007678000000   0.000099000000 AA   -4.709023647613   0.014509317184   0.000187082886 Bohr   0.0
+[INPUT]  8 C     -2.463249000000  -1.399643000000  -0.000160000000 AA   -4.654865986609  -2.644941942165  -0.000302356180 Bohr   0.0
+[INPUT]  9 C     -1.265167000000  -2.145960000000  -0.000226000000 AA   -2.390819131838  -4.055276674272  -0.000427078104 Bohr   0.0
+[INPUT] 10 C      0.001903000000  -1.511698000000   0.000177000000 AA    0.003596148815  -2.856695203053   0.000334481524 Bohr   0.0
+[INPUT] 11 C      1.270282000000  -2.143200000000   0.000302000000 AA    2.400485080965  -4.050061030168   0.000570697290 Bohr   0.0
+[INPUT] 12 C      2.466529000000  -1.393976000000   0.000064000000 AA    4.661064288297  -2.634232864217   0.000120942472 Bohr   0.0
+[INPUT] 13 C      2.491743000000   0.013459000000  -0.000105000000 AA    4.708711842802   0.025433823911  -0.000198421243 Bohr   0.0
+[INPUT] 14 H     -2.061796000000   2.813229000000   0.001577000000 AA   -3.896229764724   5.316232335684   0.002980098098 Bohr   0.0
+[INPUT] 15 H      2.055098000000   2.818320000000  -0.001211000000 AA    3.883572379141   5.325852931384  -0.002288458337 Bohr   0.0
+[INPUT] 16 H     -3.471778000000   0.503178000000  -0.000040000000 AA   -6.560709585290   0.950868611906  -0.000075589045 Bohr   0.0
+[INPUT] 17 H     -3.411917000000  -1.941227000000  -0.000325000000 AA   -6.447588689748  -3.668387375611  -0.000614160990 Bohr   0.0
+[INPUT] 18 H     -1.346699000000  -3.241193000000  -0.001286000000 AA   -2.544892282226  -6.124967086857  -0.002430187796 Bohr   0.0
+[INPUT] 19 H      1.354399000000  -3.238215000000   0.000575000000 AA    2.559443173385  -6.119339482458   0.001086592522 Bohr   0.0
+[INPUT] 20 H      3.416552000000  -1.933175000000   0.000218000000 AA    6.456347570335  -3.653171300856   0.000411960295 Bohr   0.0
+[INPUT] 21 H      3.470427000000   0.511339000000  -0.000126000000 AA    6.558156565296   0.966290666809  -0.000238105492 Bohr   0.0
+
+nuclear repulsion = 670.000632196805
+number of shells = 144
+number of NR pGTOs = 543
+number of NR cGTOs = 371
+basis = aug-cc-pvdz
+ecp = {}
+CPU time:    563174.65
+
+
+******** <class 'pyscf.dft.rks.RKS'> ********
+method = RKS
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-09
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/tmp189br8sg
+max_memory 4000 MB (current use 233 MB)
+XC library pyscf.dft.libxc version 7.0.0
+    S. Lehtola, C. Steigemann, M. J.T. Oliveira, and M. A.L. Marques.,  SoftwareX 7, 1–5 (2018)
+XC functionals = cam-b3lyp
+    T. Yanai, D. P. Tew, and N. C. Handy.,  Chem. Phys. Lett. 393, 51 (2004)
+radial grids: 
+    Treutler-Ahlrichs [JCP 102, 346 (1995); DOI:10.1063/1.469408] (M4) radial grids
+    
+becke partition: Becke, JCP 88, 2547 (1988); DOI:10.1063/1.454033
+pruning grids: <function nwchem_prune at 0x7f2126ee1550>
+grids dens level: 3
+symmetrized grids: False
+atomic radii adjust function: <function treutler_atomic_radii_adjust at 0x7f2127521ca0>
+small_rho_cutoff = 1e-07
+Set gradient conv threshold to 3.16228e-05
+Initial guess from minao.
+tot grids = 261712
+init E= -506.172182160389
+  HOMO = -0.253452790906256  LUMO = -0.169645140890955
+cycle= 1 E= -503.229673031818  delta_E= 2.94  |g|= 0.552  |ddm|= 56.8
+  HOMO = -0.207180549775111  LUMO = -0.093652655380573
+cycle= 2 E= -503.2352241747  delta_E= -0.00555  |g|= 0.569  |ddm|= 7.97
+  HOMO = -0.267616137302412  LUMO = -0.104087324566614
+cycle= 3 E= -503.316326703948  delta_E= -0.0811  |g|= 0.0601  |ddm|= 3.58
+  HOMO = -0.266065564211863  LUMO = -0.103743731517147
+cycle= 4 E= -503.316978605787  delta_E= -0.000652  |g|= 0.0397  |ddm|= 0.731
+  HOMO = -0.265733768434964  LUMO = -0.103672594597355
+cycle= 5 E= -503.317398983987  delta_E= -0.00042  |g|= 0.00964  |ddm|= 0.293
+  HOMO = -0.265349691056831  LUMO = -0.103297926602766
+cycle= 6 E= -503.317423898224  delta_E= -2.49e-05  |g|= 0.00326  |ddm|= 0.0899
+  HOMO = -0.265472486755113  LUMO = -0.103285594587047
+cycle= 7 E= -503.317427160652  delta_E= -3.26e-06  |g|= 0.000755  |ddm|= 0.0223
+  HOMO = -0.265491619313618  LUMO = -0.103303910435391
+cycle= 8 E= -503.317427470957  delta_E= -3.1e-07  |g|= 0.000286  |ddm|= 0.0121
+  HOMO = -0.265480451361387  LUMO = -0.103280050888206
+cycle= 9 E= -503.317427508714  delta_E= -3.78e-08  |g|= 0.000127  |ddm|= 0.00425
+  HOMO = -0.265482568716601  LUMO = -0.103276604254775
+cycle= 10 E= -503.317427518246  delta_E= -9.53e-09  |g|= 5.7e-05  |ddm|= 0.0018
+  HOMO = -0.26548656471709  LUMO = -0.103280466429877
+cycle= 11 E= -503.317427519678  delta_E= -1.43e-09  |g|= 1.91e-05  |ddm|= 0.000709
+  HOMO = -0.265486280771546  LUMO = -0.103279353367653
+cycle= 12 E= -503.317427519855  delta_E= -1.77e-10  |g|= 1e-05  |ddm|= 0.000273
+  HOMO = -0.265486229605117  LUMO = -0.103279492520824
+Extra cycle  E= -503.317427519848  delta_E= 6.82e-12  |g|= 1.41e-05  |ddm|= 0.000112
+converged SCF energy = -503.317427519848
+rhf_internal: lowest eigs of H = [0.18018123 0.54076783 0.570792  ]
+<class 'pyscf.dft.rks.RKS'> wavefunction is stable in the internal stability analysis
+fun_cam-b3lyp
+4_optimized.xyz  Singlet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 singlet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmp189br8sg
+max_memory 4000 MB (current use 233 MB)
+
+
+Excited State energies (eV)
+[1.33251352 2.64261237 3.52164548 3.76925914 3.91490814]
+
+** Singlet excitation energies and oscillator strengths **
+Excited State   1:      1.33251 eV    930.45 nm  f=0.0028
+      43 -> 44       -0.69706
+Excited State   2:      2.64261 eV    469.17 nm  f=0.0000
+      41 -> 44        0.69063
+      41 -> 49       -0.12004
+Excited State   3:      3.52165 eV    352.06 nm  f=0.0000
+      39 -> 44       -0.70028
+Excited State   4:      3.76926 eV    328.94 nm  f=0.3000
+      42 -> 44       -0.66441
+      43 -> 47       -0.18887
+Excited State   5:      3.91491 eV    316.70 nm  f=0.0000
+      38 -> 44        0.69264
+      41 -> 49       -0.11085
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.2950      0.0004     -0.0000      0.0871      0.0028
+  2        -0.0003      0.0025      0.0000      0.0000      0.0000
+  3        -0.0014      0.0026     -0.0105      0.0001      0.0000
+  4         0.0023     -1.8024      0.0001      3.2487      0.3000
+  5         0.0103     -0.0055      0.0000      0.0001      0.0000
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.0406     -0.0001      0.0000      0.0016      0.0224
+  2         0.0000     -0.0003     -0.0000      0.0000      0.0000
+  3         0.0001     -0.0002      0.0034      0.0000      0.0001
+  4        -0.0001      0.0984     -0.0000      0.0097      0.0466
+  5        -0.0004      0.0003     -0.0000      0.0000      0.0000
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1         0.0000     -0.0000     -2.1284
+  2        -0.0001      0.0552      0.0000
+  3         0.1513      0.0005      0.0007
+  4         0.0002     -0.0008     -0.0001
+  5        -0.0006      0.2410      0.0006
+4_optimized.xyz  Triplet
+
+
+******** <class 'pyscf.tdscf.rks.TDA'> for <class 'pyscf.dft.rks.RKS'> ********
+nstates = 5 triplet
+deg_eia_thresh = 1.000e-03
+wfnsym = None
+conv_tol = 1e-05
+eigh lindep = 1e-12
+eigh level_shift = 0
+eigh max_cycle = 100
+chkfile = /tmp/tmp189br8sg
+max_memory 4000 MB (current use 299 MB)
+
+
+Excited State energies (eV)
+[1.10974593 2.044218   2.3474646  2.5470391  3.41112462]
+
+** Triplet excitation energies and oscillator strengths **
+Excited State   1:      1.10975 eV   1117.23 nm  f=0.0000
+      43 -> 44        0.70132
+Excited State   2:      2.04422 eV    606.51 nm  f=0.0000
+      42 -> 44       -0.69151
+Excited State   3:      2.34746 eV    528.16 nm  f=0.0000
+      40 -> 44       -0.69128
+Excited State   4:      2.54704 eV    486.78 nm  f=0.0000
+      41 -> 44       -0.68826
+      41 -> 49        0.12544
+Excited State   5:      3.41112 eV    363.47 nm  f=0.0000
+      39 -> 44       -0.69815
+
+** Transition electric dipole moments (AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1         0.0000      0.0000      0.0000      0.0000      0.0000
+  2         0.0000      0.0000      0.0000      0.0000      0.0000
+  3         0.0000      0.0000      0.0000      0.0000      0.0000
+  4         0.0000      0.0000      0.0000      0.0000      0.0000
+  5         0.0000      0.0000      0.0000      0.0000      0.0000
+
+** Transition velocity dipole moments (imaginary part, AU) **
+state          X           Y           Z        Dip. S.      Osc.
+  1        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  2        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  3        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  4        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+  5        -0.0000     -0.0000     -0.0000      0.0000      0.0000
+
+** Transition magnetic dipole moments (imaginary part, AU) **
+state          X           Y           Z
+  1        -0.0000     -0.0000     -0.0000
+  2        -0.0000     -0.0000     -0.0000
+  3        -0.0000     -0.0000     -0.0000
+  4        -0.0000     -0.0000     -0.0000
+  5        -0.0000     -0.0000     -0.0000
+Done
