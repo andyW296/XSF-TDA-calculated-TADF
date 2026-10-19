@@ -1,0 +1,210 @@
+provenance of the disagreeing Peng cells
+
+============================================================================================================
+col N = USF-TDA / ALDA0 / PBE0   molecule 22   excel = 0.13147   [OTHER STATE]
+   alda0_mc_pbe0.log  (lines [9739])
+      E      :  -0.5536   0.1315   0.3196   1.0962   1.4582   1.7645   2.1410
+      D<S^2> :    -1.96    -0.88    -0.89    -1.13    -1.03    -1.31    -1.61
+   alda0_pbe0_bhhlyp.log  (lines [6904, 20030, 32658])
+      E      :  -0.8313  -0.1852   1.4613   1.6278   1.6444   2.2014   2.6731
+      D<S^2> :       --       --       --       --       --       --       --
+   excel 0.13147 found as: alda0_mc_pbe0.log state 2 = 0.13147
+   rule picked  : 0.31959  (state 3, D<S^2>=-0.89, file alda0_mc_pbe0.log)
+============================================================================================================
+col N = USF-TDA / ALDA0 / PBE0   molecule 31   excel = 0.07025   [OTHER STATE]
+   alda0_mc_pbe0.log  (lines [13594])
+      E      :  -0.7259   0.0703   0.2433   0.8150   1.0193   1.0651   1.1604
+      D<S^2> :    -1.99    -0.94    -0.97    -0.99    -0.97    -0.99    -0.96
+   alda0_pbe0_bhhlyp.log  (lines [9527, 22391, 35276])
+      E      :  -0.8958  -0.2488   0.8715   1.0283   1.1469   1.5185   1.5901
+      D<S^2> :       --       --       --       --       --       --       --
+   excel 0.07025 found as: alda0_mc_pbe0.log state 2 = 0.07025
+   rule picked  : 0.24330  (state 3, D<S^2>=-0.97, file alda0_mc_pbe0.log)
+============================================================================================================
+col O = XSF-TDA / ALDA0 / PBE0   molecule 44   excel = 0.05034   [NO SUPPORT]
+   alda0_b3lyp_pbe0_cam.log  (lines [58471, 83563])
+      E      :  -2.5901  -1.0084  -0.6854   0.7121   1.0095   1.0156   1.3683
+      D<S^2> :       --       --       --       --       --       --       --
+   excel 0.05034 found as: NO state of these arrays
+   rule picked  : -1.00837  (2nd eigenvalue, file alda0_b3lyp_pbe0_cam.log)
+============================================================================================================
+col P = USF-TDA / MC / PBE0   molecule 36   excel = 0.12353   [OTHER STATE]
+   alda0_mc_pbe0.log  (lines [15610])
+      E      :  -0.7407  -0.0024   0.1235   0.9028   0.9028   1.8281   1.9666
+      D<S^2> :    -1.99    -0.97    -0.93    -0.99    -0.99    -1.98    -0.97
+   mc_pbe0_bhhlyp.log  (line ?)
+      E      :  -0.8693  -0.1095   0.9846   0.9846   1.6985   1.9697   1.9698
+      D<S^2> :       --       --       --       --       --       --       --
+   excel 0.12353 found as: alda0_mc_pbe0.log state 3 = 0.12353
+   rule picked  : -0.00236  (state 2, D<S^2>=-0.97, file alda0_mc_pbe0.log)
+============================================================================================================
+col Q = XSF-TDA / MC / PBE0   molecule 44   excel = -0.12511   [NO SUPPORT]
+   alda0_b3lyp_pbe0_cam.log  (lines [58585, 83697])
+      E      :  -2.5139  -1.2824  -0.6256   0.2807   0.6656   0.9703   1.3348
+      D<S^2> :       --       --       --       --       --       --       --
+   excel -0.12511 found as: NO state of these arrays
+   rule picked  : -1.28242  (2nd eigenvalue, file alda0_b3lyp_pbe0_cam.log)
+============================================================================================================
+col V = USF-TDA / ALDA0 / BHHLYP   molecule 6   excel = 0.12742   [NO SUPPORT]
+   usf_tda_bhhlyp.log  (lines [2107])
+      E      :  -1.0075  -0.3663   0.4112   0.6996   0.8405   0.8508   1.2210
+      D<S^2> :    -1.95    -1.05    -0.15    -1.03    -1.06    -1.18    -1.02
+   alda0_pbe0_bhhlyp.log  (lines [2161, 15734, 28050])
+      E      :  -1.3515  -0.4022   0.9425   0.9646   1.3013   1.3988   1.4040
+      D<S^2> :       --       --       --       --       --       --       --
+   excel 0.12742 found as: NO state of these arrays
+   rule picked  : -0.36631  (state 2, D<S^2>=-1.05, file usf_tda_bhhlyp.log)
+============================================================================================================
+col V = USF-TDA / ALDA0 / BHHLYP   molecule 30   excel = -0.03681   [NO SUPPORT]
+   usf_tda_bhhlyp.log  (lines [11867])
+      E      :  -0.8044  -0.1289   0.3683   1.3378   1.4688   1.8275   1.9558
+      D<S^2> :    -1.90    -1.29    -0.07    -0.95    -1.42    -1.17    -1.06
+   alda0_pbe0_bhhlyp.log  (lines [9264, 22133, 35002])
+      E      :  -1.1675  -0.5951   1.4666   1.7040   1.8298   1.8449   2.0826
+      D<S^2> :       --       --       --       --       --       --       --
+   excel -0.03681 found as: NO state of these arrays
+   rule picked  : -0.12890  (state 2, D<S^2>=-1.29, file usf_tda_bhhlyp.log)
+============================================================================================================
+col V = USF-TDA / ALDA0 / BHHLYP   molecule 34   excel = -0.08213   [NO SUPPORT]
+   usf_tda_bhhlyp.log  (lines [13497])
+      E      :  -0.9274  -0.0664   0.4073   1.2070   1.4283   1.5467   1.5516
+      D<S^2> :    -1.86    -1.32    -0.07    -0.95    -1.08    -0.94    -1.34
+   alda0_pbe0_bhhlyp.log  (lines [10440, 23181, 36112])
+      E      :  -1.4062  -0.6287   1.2101   1.4782   1.7018   1.7966   2.1573
+      D<S^2> :       --       --       --       --       --       --       --
+   excel -0.08213 found as: NO state of these arrays
+   rule picked  : -0.06641  (state 2, D<S^2>=-1.32, file usf_tda_bhhlyp.log)
+============================================================================================================
+col V = USF-TDA / ALDA0 / BHHLYP   molecule 37   excel = -0.01370   [NO SUPPORT]
+   usf_tda_bhhlyp.log  (lines [14681])
+      E      :  -0.3029   0.0764   0.4907   1.3416   1.4666   1.6879   2.3133
+      D<S^2> :    -1.84    -1.33     0.34    -1.05    -1.64    -1.11    -0.89
+   alda0_pbe0_bhhlyp.log  (lines [11396, 23971, 37002])
+      E      :  -1.1413  -0.2283   1.0559   1.4794   1.6971   2.0231   2.1166
+      D<S^2> :       --       --       --       --       --       --       --
+   excel -0.01370 found as: NO state of these arrays
+   rule picked  : 0.07638  (state 2, D<S^2>=-1.33, file usf_tda_bhhlyp.log)
+============================================================================================================
+col V = USF-TDA / ALDA0 / BHHLYP   molecule 39   excel = -0.06093   [NO SUPPORT]
+   usf_tda_bhhlyp.log  (lines [15492])
+      E      :  -0.7899  -0.0065   0.3630   0.8300   1.2639   1.5400   1.9121
+      D<S^2> :    -1.84    -1.29     0.06    -1.06    -1.46    -1.05    -0.81
+   alda0_pbe0_bhhlyp.log  (lines [11946, 24511, 37563])
+      E      :  -1.3065  -0.5155   0.9389   1.2286   1.5415   1.7813   2.0874
+      D<S^2> :       --       --       --       --       --       --       --
+   excel -0.06093 found as: NO state of these arrays
+   rule picked  : -0.00653  (state 2, D<S^2>=-1.29, file usf_tda_bhhlyp.log)
+============================================================================================================
+col V = USF-TDA / ALDA0 / BHHLYP   molecule 44   excel = 0.32911   [OTHER STATE]
+   usf_tda_bhhlyp.log  (lines [17517])
+      E      :  -0.4950   0.3291   0.4522   0.6258   1.8607   2.0576   2.5109
+      D<S^2> :    -1.89    -0.96    -1.01    -0.79    -1.00    -1.10    -0.99
+   alda0_pbe0_bhhlyp.log  (lines [13458, 25889, 38980])
+      E      :  -1.2684  -0.2536   0.7858   1.6367   2.3782   2.4657   2.5442
+      D<S^2> :       --       --       --       --       --       --       --
+   excel 0.32911 found as: usf_tda_bhhlyp.log state 2 = 0.32912
+   rule picked  : 0.45222  (state 3, D<S^2>=-1.01, file usf_tda_bhhlyp.log)
+============================================================================================================
+col X = USF-TDA / MC / BHHLYP   molecule 6   excel = 0.06528   [NO SUPPORT]
+   usf_tda_bhhlyp.log  (lines [2201])
+      E      :  -1.0572  -0.3854   0.3019   0.6660   0.7501   0.8107   1.1996
+      D<S^2> :    -1.94    -1.05    -0.13    -1.03    -1.16    -1.05    -1.01
+   mc_pbe0_bhhlyp.log  (line ?)
+      E      :  -1.2189   0.0306   0.9034   0.9645   1.0712   1.1584   1.3028
+      D<S^2> :       --       --       --       --       --       --       --
+   excel 0.06528 found as: NO state of these arrays
+   rule picked  : -0.38543  (state 2, D<S^2>=-1.05, file usf_tda_bhhlyp.log)
+============================================================================================================
+col X = USF-TDA / MC / BHHLYP   molecule 30   excel = -0.11970   [NO SUPPORT]
+   usf_tda_bhhlyp.log  (lines [11950])
+      E      :  -0.8453  -0.1905   0.2668   1.2962   1.4239   1.7656   1.8977
+      D<S^2> :    -1.90    -1.32    -0.03    -0.94    -1.40    -1.14    -1.08
+   mc_pbe0_bhhlyp.log  (line ?)
+      E      :  -1.0118  -0.1818   1.1736   1.4309   1.7064   1.8262   2.3530
+      D<S^2> :       --       --       --       --       --       --       --
+   excel -0.11970 found as: NO state of these arrays
+   rule picked  : -0.19051  (state 2, D<S^2>=-1.32, file usf_tda_bhhlyp.log)
+============================================================================================================
+col X = USF-TDA / MC / BHHLYP   molecule 34   excel = -0.14900   [NO SUPPORT]
+   usf_tda_bhhlyp.log  (lines [13589])
+      E      :  -0.9589  -0.1378   0.3103   1.1732   1.3731   1.5118   1.5131
+      D<S^2> :    -1.85    -1.35    -0.03    -0.95    -1.06    -0.94    -1.33
+   mc_pbe0_bhhlyp.log  (line ?)
+      E      :  -1.2497  -0.2040   1.0574   1.1685   1.3978   1.4402   2.0001
+      D<S^2> :       --       --       --       --       --       --       --
+   excel -0.14900 found as: NO state of these arrays
+   rule picked  : -0.13780  (state 2, D<S^2>=-1.35, file usf_tda_bhhlyp.log)
+============================================================================================================
+col X = USF-TDA / MC / BHHLYP   molecule 37   excel = -0.07281   [NO SUPPORT]
+   usf_tda_bhhlyp.log  (lines [14797])
+      E      :  -0.3559   0.0036   0.3746   1.2756   1.4190   1.6041   2.2035
+      D<S^2> :    -1.83    -1.34     0.37    -1.04    -1.61    -1.11    -0.89
+   mc_pbe0_bhhlyp.log  (line ?)
+      E      :  -0.8524  -0.1032   0.7724   1.1978   1.4378   1.9815   2.2586
+      D<S^2> :       --       --       --       --       --       --       --
+   excel -0.07281 found as: NO state of these arrays
+   rule picked  : 0.00357  (state 2, D<S^2>=-1.34, file usf_tda_bhhlyp.log)
+============================================================================================================
+col X = USF-TDA / MC / BHHLYP   molecule 39   excel = -0.13663   [NO SUPPORT]
+   usf_tda_bhhlyp.log  (lines [15617])
+      E      :  -0.8317  -0.0653   0.2541   0.7655   1.2212   1.4755   1.8226
+      D<S^2> :    -1.83    -1.32     0.09    -1.05    -1.43    -1.05    -0.80
+   mc_pbe0_bhhlyp.log  (line ?)
+      E      :  -1.1396  -0.1569   0.7404   0.7674   1.1740   1.8348   1.9366
+      D<S^2> :       --       --       --       --       --       --       --
+   excel -0.13663 found as: NO state of these arrays
+   rule picked  : -0.06534  (state 2, D<S^2>=-1.32, file usf_tda_bhhlyp.log)
+============================================================================================================
+col X = USF-TDA / MC / BHHLYP   molecule 44   excel = 0.03308   [OTHER STATE]
+   usf_tda_bhhlyp.log  (lines [17607])
+      E      :  -0.5094   0.0331   0.4024   0.5227   1.7804   2.0456   2.5109
+      D<S^2> :    -1.89    -1.00    -1.01    -0.73    -0.99    -1.10    -0.99
+   mc_pbe0_bhhlyp.log  (line ?)
+      E      :  -0.9832  -0.1509   0.7179   1.6255   1.9901   2.3486   2.4896
+      D<S^2> :       --       --       --       --       --       --       --
+   excel 0.03308 found as: usf_tda_bhhlyp.log state 2 = 0.03311
+   rule picked  : 0.40239  (state 3, D<S^2>=-1.01, file usf_tda_bhhlyp.log)
+============================================================================================================
+col Y = XSF-TDA / MC / BHHLYP   molecule 37   excel = -0.10317   [NO SUPPORT]
+   alda0_mc_bhhlyp.log  (lines [16483])
+      E      :  -0.9866   0.0352   0.8832   1.3169   1.5579   1.9431   2.1274
+      D<S^2> :       --       --       --       --       --       --       --
+   excel -0.10317 found as: NO state of these arrays
+   rule picked  : 0.03517  (2nd eigenvalue, file alda0_mc_bhhlyp.log)
+============================================================================================================
+col AE = XSF-TDA / ALDA0 / CAM-B3LYP   molecule 37   excel = -0.23883   [NO SUPPORT]
+   alda0_b3lyp_pbe0_cam.log  (lines [13416, 33376, 54931, 79755])
+      E      :  -1.1446  -0.1014   1.0108   1.3997   1.6669   1.9273   2.0589
+      D<S^2> :       --       --       --       --       --       --       --
+   excel -0.23883 found as: NO state of these arrays
+   rule picked  : -0.10142  (2nd eigenvalue, file alda0_b3lyp_pbe0_cam.log)
+============================================================================================================
+col AG = XSF-TDA / MC / CAM-B3LYP   molecule 37   excel = -0.17170   [NO SUPPORT]
+   alda0_b3lyp_pbe0_cam.log  (lines [13472, 33503, 55067, 79909])
+      E      :  -1.0401   0.0460   0.9332   1.2484   1.5391   1.8757   2.0626
+      D<S^2> :       --       --       --       --       --       --       --
+   excel -0.17170 found as: NO state of these arrays
+   rule picked  : 0.04598  (2nd eigenvalue, file alda0_b3lyp_pbe0_cam.log)
+
+summary of the rule for each cell:
+  col mol     excel rule value     diff  file:line
+    N  22   0.13147    0.31959 +0.18812  alda0_mc_pbe0.log:[9739]
+    N  31   0.07025    0.24330 +0.17305  alda0_mc_pbe0.log:[13594]
+    O  44   0.05034   -1.00837 -1.05871  alda0_b3lyp_pbe0_cam.log:[58471, 83563]
+    P  36   0.12353   -0.00236 -0.12589  alda0_mc_pbe0.log:[15610]
+    Q  44  -0.12511   -1.28242 -1.15731  alda0_b3lyp_pbe0_cam.log:[58585, 83697]
+    V   6   0.12742   -0.36631 -0.49373  usf_tda_bhhlyp.log:[2107]
+    V  30  -0.03681   -0.12890 -0.09209  usf_tda_bhhlyp.log:[11867]
+    V  34  -0.08213   -0.06641 +0.01572  usf_tda_bhhlyp.log:[13497]
+    V  37  -0.01370    0.07638 +0.09008  usf_tda_bhhlyp.log:[14681]
+    V  39  -0.06093   -0.00653 +0.05440  usf_tda_bhhlyp.log:[15492]
+    V  44   0.32911    0.45222 +0.12311  usf_tda_bhhlyp.log:[17517]
+    X   6   0.06528   -0.38543 -0.45071  usf_tda_bhhlyp.log:[2201]
+    X  30  -0.11970   -0.19051 -0.07081  usf_tda_bhhlyp.log:[11950]
+    X  34  -0.14900   -0.13780 +0.01120  usf_tda_bhhlyp.log:[13589]
+    X  37  -0.07281    0.00357 +0.07638  usf_tda_bhhlyp.log:[14797]
+    X  39  -0.13663   -0.06534 +0.07129  usf_tda_bhhlyp.log:[15617]
+    X  44   0.03308    0.40239 +0.36931  usf_tda_bhhlyp.log:[17607]
+    Y  37  -0.10317    0.03517 +0.13834  alda0_mc_bhhlyp.log:[16483]
+   AE  37  -0.23883   -0.10142 +0.13741  alda0_b3lyp_pbe0_cam.log:[13416, 33376, 54931, 79755]
+   AG  37  -0.17170    0.04598 +0.21768  alda0_b3lyp_pbe0_cam.log:[13472, 33503, 55067, 79909]

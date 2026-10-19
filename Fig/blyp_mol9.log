@@ -1,0 +1,982 @@
+backend: {'mode': 'cpu', 'array_module': 'numpy', 'pyscf_backend': 'pyscf', 'cupy': False, 'cuda': False, 'cupy_error': 'ModuleNotFoundError("No module named \'cupy\'")'}
+#INFO: **** input file is /data/zhw/tadf/ten_mol/xsf/blyp/blyp.py ****
+import os
+import sys
+from pathlib import Path
+
+# 这些环境变量控制 CPU 并行线程数。
+# PySCF、NumPy、MKL/OpenBLAS 都可能开线程；初学时建议先设成一个明确值，
+# 否则不同机器上可能因为线程数不同而速度差别很大。
+os.environ.setdefault("OMP_NUM_THREADS", "24")
+os.environ.setdefault("MKL_NUM_THREADS", "24")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "24")
+os.environ.setdefault("NUMEXPR_NUM_THREADS", "24")
+
+import numpy as np
+from pyscf import dft, gto, lib, scf
+from pyscf.geomopt.berny_solver import optimize
+
+from XTDDFT.utils.backend import backend_info, set_backend
+set_backend("cpu")
+from XTDDFT.XTDDFT.xsf_tda_down import XSF_TDA_down
+
+lib.num_threads(int(os.environ["OMP_NUM_THREADS"]))
+print("backend:", backend_info())
+
+xc = "BLYP"
+basis = "6-31G*"
+charge = 0
+spin = 2
+SA = 3
+unit = "Angstrom"
+cycle = 200
+nstates = 7
+method = 1  # 1 = multicollinear XSF kernel
+collinear_samples = 20
+
+use_density_fit = False
+max_memory = 4000
+grid_level = 3
+
+gx = np.arange(11)*0.1
+
+for mol_ind in [8]:
+        mol_path = '/data/zhw/tadf/ten_mol/xyz/' + f'mol{mol_ind+1}.xyz' 
+        mol = gto.M(atom = mol_path, basis = basis, charge = 0,spin = 2,verbose = 4)
+        mf = dft.ROKS(mol,xc=xc)
+        mf.max_memory = max_memory
+        mf.grids.level = grid_level
+        mf.kernel()
+        if not mf.converged:
+            mf = mf.newton()
+            mf.kernel()
+        assert mf.converged
+        mo, _, stable, _ = mf.stability(tol=1e-7,nroots=5,return_status=True)
+        if stable is False:
+            dm = mf.make_rdm1(mo, mf.mo_occ)
+            mf.kernel(dm0=dm)
+            mo, _, stable, _ = mf.stability(tol=1e-7,nroots=5,return_status=True)
+        if stable is False:
+            dm = mf.make_rdm1(mo,mf.mo_occ)
+            mf = mf.newton()
+            mf.shift_level = 0.4
+            mf.max_cycle = 2*cycle
+            mf.grids.levle = grid_level + 2
+            mf.kernel(dm0=dm)
+            mo, _, stable, _ = mf.stability(tol=1e-7,nroots=5,return_status=True)
+        assert stable        
+
+        for index_gx,gx_i in enumerate(gx):
+                xsf = XSF_TDA_down(mf,method=method,SA=SA,davidson=True,
+                                   davidson_backend="cpu",collinear_samples=collinear_samples,)
+                energies_ev, vectors = xsf.kernel(nstates=nstates,remove=None,
+                                                  foo=1.0,
+                                                  d_lda=0.3,
+                                                  fglobal=0.3*gx_i,
+                                                  fit=False,
+                                                  save=False)
+                print(f'mol{mol_ind}, index_gx {index_gx}, gx_i {gx_i}')
+                xsf.analyse()
+                xsf = None
+
+print('Done')
+
+#INFO: ******************** input file end ********************
+
+
+System: uname_result(system='Linux', node='localhost.localdomain', release='3.10.0-1160.el7.x86_64', version='#1 SMP Mon Oct 19 16:18:59 UTC 2020', machine='x86_64')  Threads 4
+Python 3.11.15 | packaged by conda-forge | (main, Jun 11 2026, 03:34:02) [GCC 14.3.0]
+numpy 2.3.5  scipy 1.17.1  h5py 3.16.0
+Date: Sun Oct 18 09:36:42 2026
+PySCF version 2.14.0
+PySCF path  /home/ps/anaconda3/envs/zhw/lib/python3.11/site-packages/pyscf
+
+[CONFIG] conf_file None
+[INPUT] verbose = 4
+[INPUT] num. atoms = 20
+[INPUT] num. electrons = 86
+[INPUT] charge = 0
+[INPUT] spin (= nelec alpha-beta = 2S) = 2
+[INPUT] symmetry False subgroup None
+[INPUT] Mole.unit = angstrom
+[INPUT] Symbol           X                Y                Z      unit          X                Y                Z       unit  Magmom
+[INPUT]  1 B      0.000000000000   0.000000000000  -0.027904000000 AA    0.000000000000   0.000000000000  -0.052730917780 Bohr   0.0
+[INPUT]  2 C      0.000000000000   0.000000000000   1.451127000000 AA    0.000000000000   0.000000000000   2.742232601962 Bohr   0.0
+[INPUT]  3 C      0.000000000000   0.000000000000  -2.824453000000 AA    0.000000000000   0.000000000000  -5.337442621706 Bohr   0.0
+[INPUT]  4 C      0.000000000000   1.296500000000  -0.752760000000 AA    0.000000000000   2.450029920499  -1.422510237528 Bohr   0.0
+[INPUT]  5 C      0.000000000000  -1.296500000000  -0.752760000000 AA    0.000000000000  -2.450029920499  -1.422510237528 Bohr   0.0
+[INPUT]  6 C      0.000000000000   1.263571000000   2.068891000000 AA    0.000000000000   2.387803128943   3.909637371578 Bohr   0.0
+[INPUT]  7 C      0.000000000000  -1.263571000000   2.068891000000 AA    0.000000000000  -2.387803128943   3.909637371578 Bohr   0.0
+[INPUT]  8 C      0.000000000000   1.236527000000  -2.159506000000 AA    0.000000000000   2.336697375630  -4.080874904355 Bohr   0.0
+[INPUT]  9 C      0.000000000000  -1.236527000000  -2.159506000000 AA    0.000000000000  -2.336697375630  -4.080874904355 Bohr   0.0
+[INPUT] 10 C      0.000000000000   2.442038000000   0.060811000000 AA    0.000000000000   4.614783005781   0.114916135361 Bohr   0.0
+[INPUT] 11 C      0.000000000000  -2.442038000000   0.060811000000 AA    0.000000000000  -4.614783005781   0.114916135361 Bohr   0.0
+[INPUT] 12 N      0.000000000000   2.435329000000   1.409459000000 AA    0.000000000000   4.602104833211   2.663491493803 Bohr   0.0
+[INPUT] 13 N      0.000000000000  -2.435329000000   1.409459000000 AA    0.000000000000  -4.602104833211   2.663491493803 Bohr   0.0
+[INPUT] 14 H      0.000000000000   0.000000000000  -3.902496000000 AA    0.000000000000   0.000000000000  -7.374648642211 Bohr   0.0
+[INPUT] 15 H      0.000000000000   1.363955000000   3.150354000000 AA    0.000000000000   2.577501396231   5.953306255428 Bohr   0.0
+[INPUT] 16 H      0.000000000000  -1.363955000000   3.150354000000 AA    0.000000000000  -2.577501396231   5.953306255428 Bohr   0.0
+[INPUT] 17 H      0.000000000000   3.438306000000  -0.372508000000 AA    0.000000000000   6.497456672449  -0.703938099209 Bohr   0.0
+[INPUT] 18 H      0.000000000000  -3.438306000000  -0.372508000000 AA    0.000000000000  -6.497456672449  -0.703938099209 Bohr   0.0
+[INPUT] 19 H      0.000000000000   2.137274000000  -2.763882000000 AA    0.000000000000   4.038862513154  -5.222980020615 Bohr   0.0
+[INPUT] 20 H      0.000000000000  -2.137274000000  -2.763882000000 AA    0.000000000000  -4.038862513154  -5.222980020615 Bohr   0.0
+
+nuclear repulsion = 678.568671717882
+number of shells = 92
+number of NR pGTOs = 379
+number of NR cGTOs = 196
+basis = 6-31G*
+ecp = {}
+CPU time:         3.09
+
+
+******** <class 'pyscf.dft.roks.ROKS'> ********
+method = ROKS
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-09
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/tmpuris2jdd
+max_memory 4000 MB (current use 92 MB)
+num. doubly occ = 42  num. singly occ = 2
+XC library pyscf.dft.libxc version 7.0.0
+    S. Lehtola, C. Steigemann, M. J.T. Oliveira, and M. A.L. Marques.,  SoftwareX 7, 1–5 (2018)
+XC functionals = BLYP
+    A. D. Becke.,  Phys. Rev. A 38, 3098 (1988)
+    C. Lee, W. Yang, and R. G. Parr.,  Phys. Rev. B 37, 785 (1988)
+    B. Miehlich, A. Savin, H. Stoll, and H. Preuss.,  Chem. Phys. Lett. 157, 200 (1989)
+radial grids: 
+    Treutler-Ahlrichs [JCP 102, 346 (1995); DOI:10.1063/1.469408] (M4) radial grids
+    
+becke partition: Becke, JCP 88, 2547 (1988); DOI:10.1063/1.454033
+pruning grids: <function nwchem_prune at 0x7fb570b1fe20>
+grids dens level: 3
+symmetrized grids: False
+atomic radii adjust function: <function treutler_atomic_radii_adjust at 0x7fb570b1fd80>
+small_rho_cutoff = 0
+Set gradient conv threshold to 3.16228e-05
+tot grids = 251688
+init E= -521.394757142726
+  HOMO = -0.19872169847466  LUMO = -0.115528805527747  gap/eV = 2.26379
+cycle= 1 E= -519.208082601048  delta_E= 2.19  |g|= 0.639  |ddm|= 3.91
+  HOMO = -0.0903243999675762  LUMO = 0.0143496559560559  gap/eV = 2.84833
+cycle= 2 E= -518.937364282758  delta_E= 0.271  |g|= 1.12  |ddm|= 1.98
+  HOMO = -0.126536209030168  LUMO = -0.0411269624322936  gap/eV = 2.32410
+cycle= 3 E= -519.156659040586  delta_E= -0.219  |g|= 0.666  |ddm|= 1.65
+
+WARN: HOMO -0.0374460083320747 >= LUMO -0.191485713422854
+
+cycle= 4 E= -518.910154442575  delta_E= 0.247  |g|= 0.764  |ddm|=  1.7
+  HOMO = -0.137402915349358  LUMO = -0.0457289878572906  gap/eV = 2.49457
+cycle= 5 E= -519.303442190287  delta_E= -0.393  |g|= 0.258  |ddm|= 1.32
+  HOMO = -0.140916160021013  LUMO = -0.0469120616555174  gap/eV = 2.55798
+cycle= 6 E= -519.317137256283  delta_E= -0.0137  |g|= 0.213  |ddm|= 0.965
+  HOMO = -0.138646711797104  LUMO = -0.0469143744377125  gap/eV = 2.49616
+cycle= 7 E= -519.321632437878  delta_E= -0.0045  |g|= 0.172  |ddm|= 0.0889
+  HOMO = -0.139694717062895  LUMO = -0.0468182239177271  gap/eV = 2.52730
+cycle= 8 E= -519.303196120409  delta_E= 0.0184  |g|= 0.279  |ddm|= 0.952
+  HOMO = -0.139107189551892  LUMO = -0.0465477744688871  gap/eV = 2.51867
+cycle= 9 E= -519.308293579835  delta_E= -0.0051  |g|= 0.25  |ddm|= 0.0421
+  HOMO = -0.138584074964121  LUMO = -0.0460609141876067  gap/eV = 2.51768
+cycle= 10 E= -519.327981625223  delta_E= -0.0197  |g|= 0.14  |ddm|= 0.949
+  HOMO = -0.139934255980637  LUMO = -0.0476284277343395  gap/eV = 2.51177
+cycle= 11 E= -519.305885588841  delta_E= 0.0221  |g|= 0.266  |ddm|= 0.949
+  HOMO = -0.139507082963211  LUMO = -0.047018561848319  gap/eV = 2.51674
+cycle= 12 E= -519.30584898292  delta_E= 3.66e-05  |g|= 0.265  |ddm|= 0.013
+  HOMO = -0.139713528370826  LUMO = -0.0476141353447477  gap/eV = 2.50615
+cycle= 13 E= -519.30758949737  delta_E= -0.00174  |g|= 0.256  |ddm|= 0.0172
+  HOMO = -0.139192624409131  LUMO = -0.0471968017922819  gap/eV = 2.50333
+cycle= 14 E= -519.327805715167  delta_E= -0.0202  |g|= 0.136  |ddm|= 0.949
+  HOMO = -0.138945141586651  LUMO = -0.0468002689840925  gap/eV = 2.50739
+cycle= 15 E= -519.327288831279  delta_E= 0.000517  |g|= 0.141  |ddm|= 0.0137
+  HOMO = -0.139034911457631  LUMO = -0.0469697219938943  gap/eV = 2.50522
+cycle= 16 E= -519.327384204524  delta_E= -9.54e-05  |g|= 0.141  |ddm|= 0.00663
+  HOMO = -0.139216799822322  LUMO = -0.047162330621723  gap/eV = 2.50493
+cycle= 17 E= -519.309570245714  delta_E= 0.0178  |g|= 0.245  |ddm|= 0.949
+  HOMO = -0.140188264145547  LUMO = -0.0478875233436922  gap/eV = 2.51163
+cycle= 18 E= -519.31047680996  delta_E= -0.000907  |g|= 0.241  |ddm|= 0.0138
+  HOMO = -0.137882023956898  LUMO = -0.0458737051439084  gap/eV = 2.50367
+cycle= 19 E= -519.327548578229  delta_E= -0.0171  |g|= 0.147  |ddm|= 0.949
+  HOMO = -0.138551281720998  LUMO = -0.0462038793421713  gap/eV = 2.51290
+cycle= 20 E= -519.327612689003  delta_E= -6.41e-05  |g|= 0.143  |ddm|= 0.0277
+  HOMO = -0.139326805312602  LUMO = -0.0476688933518532  gap/eV = 2.49414
+cycle= 21 E= -519.309188055156  delta_E= 0.0184  |g|= 0.245  |ddm|= 0.949
+  HOMO = -0.139367984052541  LUMO = -0.0473073430647171  gap/eV = 2.50510
+cycle= 22 E= -519.30815345555  delta_E= 0.00103  |g|= 0.251  |ddm|= 0.0119
+  HOMO = -0.138707658596567  LUMO = -0.0469638982490386  gap/eV = 2.49647
+cycle= 23 E= -519.327590619554  delta_E= -0.0194  |g|= 0.14  |ddm|= 0.949
+  HOMO = -0.139045562616232  LUMO = -0.0471560624610712  gap/eV = 2.50044
+cycle= 24 E= -519.327337533941  delta_E= 0.000253  |g|= 0.144  |ddm|= 0.0184
+  HOMO = -0.138850751509918  LUMO = -0.0468925721709068  gap/eV = 2.50231
+cycle= 25 E= -519.327968885283  delta_E= -0.000631  |g|= 0.138  |ddm|= 0.00921
+  HOMO = -0.138662039633762  LUMO = -0.0461371383626275  gap/eV = 2.51773
+cycle= 26 E= -519.297876030052  delta_E= 0.0301  |g|= 0.307  |ddm|= 0.947
+  HOMO = -0.140269264614323  LUMO = -0.0472834790988257  gap/eV = 2.53027
+cycle= 27 E= -519.290762599973  delta_E= 0.00711  |g|= 0.341  |ddm|= 0.0655
+  HOMO = -0.139852953060287  LUMO = -0.0476506072926659  gap/eV = 2.50895
+cycle= 28 E= -519.30743975598  delta_E= -0.0167  |g|= 0.262  |ddm|= 0.104
+  HOMO = -0.139375507896759  LUMO = -0.0474387026124856  gap/eV = 2.50173
+cycle= 29 E= -519.309330987627  delta_E= -0.00189  |g|= 0.249  |ddm|= 0.181
+  HOMO = -0.139170336964356  LUMO = -0.0477276021888109  gap/eV = 2.48828
+cycle= 30 E= -519.324025725872  delta_E= -0.0147  |g|= 0.169  |ddm|= 0.94
+  HOMO = -0.138828481422675  LUMO = -0.0473663237343804  gap/eV = 2.48881
+cycle= 31 E= -519.319107724165  delta_E= 0.00492  |g|= 0.203  |ddm|= 0.0552
+  HOMO = -0.139079835904386  LUMO = -0.0472226413553867  gap/eV = 2.49956
+cycle= 32 E= -519.323800282086  delta_E= -0.00469  |g|= 0.167  |ddm|= 0.067
+  HOMO = -0.140391704400152  LUMO = -0.0476958822335414  gap/eV = 2.52238
+cycle= 33 E= -519.289634027382  delta_E= 0.0342  |g|= 0.341  |ddm|= 0.956
+  HOMO = -0.139073609327394  LUMO = -0.0462686495910791  gap/eV = 2.52535
+cycle= 34 E= -519.331051189046  delta_E= -0.0414  |g|= 0.107  |ddm|= 0.559
+  HOMO = -0.138897865077834  LUMO = -0.0469112498011577  gap/eV = 2.50308
+cycle= 35 E= -519.31010711532  delta_E= 0.0209  |g|= 0.239  |ddm|= 0.602
+  HOMO = -0.13951109554037  LUMO = -0.0479484345907095  gap/eV = 2.49155
+cycle= 36 E= -519.310918556864  delta_E= -0.000811  |g|= 0.241  |ddm|= 0.188
+  HOMO = -0.139283132417042  LUMO = -0.0476316941301893  gap/eV = 2.49396
+cycle= 37 E= -519.313227520489  delta_E= -0.00231  |g|= 0.225  |ddm|= 0.0724
+  HOMO = -0.138936845174542  LUMO = -0.0474395698359102  gap/eV = 2.48977
+cycle= 38 E= -519.325848800711  delta_E= -0.0126  |g|= 0.157  |ddm|= 0.943
+  HOMO = -0.138518531798037  LUMO = -0.0479019718752332  gap/eV = 2.46580
+cycle= 39 E= -519.316647397463  delta_E= 0.0092  |g|= 0.22  |ddm|= 0.105
+  HOMO = -0.138314291905415  LUMO = -0.047641331746247  gap/eV = 2.46734
+cycle= 40 E= -519.311316210168  delta_E= 0.00533  |g|= 0.248  |ddm|= 0.0387
+  HOMO = -0.138443033813761  LUMO = -0.0477124184179996  gap/eV = 2.46891
+cycle= 41 E= -519.311326425379  delta_E= -1.02e-05  |g|= 0.244  |ddm|= 0.0454
+  HOMO = -0.139320259411282  LUMO = -0.0472208196335693  gap/eV = 2.50615
+cycle= 42 E= -519.30200012846  delta_E= 0.00933  |g|= 0.289  |ddm|= 0.957
+  HOMO = -0.140341824253001  LUMO = -0.0474540647918316  gap/eV = 2.52760
+cycle= 43 E= -519.286951947509  delta_E= 0.015  |g|= 0.354  |ddm|= 0.172
+  HOMO = -0.140202672480769  LUMO = -0.047348909056192  gap/eV = 2.52668
+cycle= 44 E= -519.278871041043  delta_E= 0.00808  |g|= 0.384  |ddm|= 0.0527
+  HOMO = -0.140284764325584  LUMO = -0.0468511314120312  gap/eV = 2.54246
+cycle= 45 E= -519.277458293234  delta_E= 0.00141  |g|= 0.389  |ddm|= 0.0327
+  HOMO = -0.139718919342128  LUMO = -0.0468678800442173  gap/eV = 2.52661
+cycle= 46 E= -519.292488608912  delta_E= -0.015  |g|= 0.331  |ddm|= 0.0804
+  HOMO = -0.13858124727103  LUMO = -0.045951358827415  gap/eV = 2.52059
+cycle= 47 E= -519.330026644652  delta_E= -0.0375  |g|= 0.137  |ddm|= 0.93
+  HOMO = -0.138756904695507  LUMO = -0.0477371982371633  gap/eV = 2.47677
+cycle= 48 E= -519.325970438051  delta_E= 0.00406  |g|= 0.16  |ddm|= 0.182
+  HOMO = -0.138925797979248  LUMO = -0.0473559404041284  gap/eV = 2.49174
+cycle= 49 E= -519.325314931885  delta_E= 0.000656  |g|= 0.156  |ddm|= 0.093
+  HOMO = -0.139047958612825  LUMO = -0.0472792965515469  gap/eV = 2.49715
+cycle= 50 E= -519.328628879779  delta_E= -0.00331  |g|= 0.131  |ddm|= 0.0721
+SCF not converged.
+SCF energy = -519.328628879779
+
+
+
+
+******** <class 'pyscf.soscf.newton_ah.SecondOrderROKS'> ********
+method = SecondOrderROKS
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-09
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/tmpuris2jdd
+max_memory 4000 MB (current use 1757 MB)
+num. doubly occ = 42  num. singly occ = 2
+XC library pyscf.dft.libxc version 7.0.0
+    S. Lehtola, C. Steigemann, M. J.T. Oliveira, and M. A.L. Marques.,  SoftwareX 7, 1–5 (2018)
+XC functionals = BLYP
+    A. D. Becke.,  Phys. Rev. A 38, 3098 (1988)
+    C. Lee, W. Yang, and R. G. Parr.,  Phys. Rev. B 37, 785 (1988)
+    B. Miehlich, A. Savin, H. Stoll, and H. Preuss.,  Chem. Phys. Lett. 157, 200 (1989)
+radial grids: 
+    Treutler-Ahlrichs [JCP 102, 346 (1995); DOI:10.1063/1.469408] (M4) radial grids
+    
+becke partition: Becke, JCP 88, 2547 (1988); DOI:10.1063/1.454033
+pruning grids: <function nwchem_prune at 0x7fb570b1fe20>
+grids dens level: 3
+symmetrized grids: False
+atomic radii adjust function: <function treutler_atomic_radii_adjust at 0x7fb570b1fd80>
+small_rho_cutoff = 0
+******** <class 'pyscf.dft.roks.ROKS'> Newton solver flags ********
+SCF tol = 1e-09
+conv_tol_grad = None
+max. SCF cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/tmpuris2jdd
+max_cycle_inner = 12
+max_stepsize = 0.05
+ah_start_tol = 1e+09
+ah_level_shift = 0
+ah_conv_tol = 1e-12
+ah_lindep = 1e-14
+ah_start_cycle = 1
+ah_max_cycle = 40
+ah_grad_trust_region = 2.5
+kf_interval = 4
+kf_trust_region = 5
+canonicalization = True
+max_memory 4000 MB (current use 1757 MB)
+Set conv_tol_grad to 3.16228e-05
+  HOMO = -0.142208032974923  LUMO = -0.0495594267992428  gap/eV = 2.52110
+Initial guess E= -519.328628879779  |g|= 0.130548
+macro= 0  E= -519.334289890332  delta_E= -0.00566101  |g|= 0.00600906  4 KF 15 JK
+macro= 1  E= -519.334633708971  delta_E= -0.000343819  |g|= 0.0115468  2 KF 8 JK
+macro= 2  E= -519.334663321489  delta_E= -2.96125e-05  |g|= 2.75555e-05  4 KF 17 JK
+macro= 3  E= -519.33466332149  delta_E= -4.54747e-13  |g|= 8.10097e-06  1 KF 2 JK
+Canonicalize SCF orbitals
+macro X = 4  E=-519.33466332149  |g|= 8.10097e-06  total 12 KF 47 JK
+converged SCF energy = -519.33466332149
+rohf_internal: lowest eigs of H = [-0.019  0.019  0.066  0.085  0.114]
+<class 'pyscf.soscf.newton_ah.SecondOrderROKS'> wavefunction has an internal instability
+
+
+
+
+******** <class 'pyscf.soscf.newton_ah.SecondOrderROKS'> ********
+method = SecondOrderROKS
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-09
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/tmpuris2jdd
+max_memory 4000 MB (current use 1754 MB)
+num. doubly occ = 42  num. singly occ = 2
+XC library pyscf.dft.libxc version 7.0.0
+    S. Lehtola, C. Steigemann, M. J.T. Oliveira, and M. A.L. Marques.,  SoftwareX 7, 1–5 (2018)
+XC functionals = BLYP
+    A. D. Becke.,  Phys. Rev. A 38, 3098 (1988)
+    C. Lee, W. Yang, and R. G. Parr.,  Phys. Rev. B 37, 785 (1988)
+    B. Miehlich, A. Savin, H. Stoll, and H. Preuss.,  Chem. Phys. Lett. 157, 200 (1989)
+radial grids: 
+    Treutler-Ahlrichs [JCP 102, 346 (1995); DOI:10.1063/1.469408] (M4) radial grids
+    
+becke partition: Becke, JCP 88, 2547 (1988); DOI:10.1063/1.454033
+pruning grids: <function nwchem_prune at 0x7fb570b1fe20>
+grids dens level: 3
+symmetrized grids: False
+atomic radii adjust function: <function treutler_atomic_radii_adjust at 0x7fb570b1fd80>
+small_rho_cutoff = 0
+******** <class 'pyscf.dft.roks.ROKS'> Newton solver flags ********
+SCF tol = 1e-09
+conv_tol_grad = None
+max. SCF cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/tmpuris2jdd
+max_cycle_inner = 12
+max_stepsize = 0.05
+ah_start_tol = 1e+09
+ah_level_shift = 0
+ah_conv_tol = 1e-12
+ah_lindep = 1e-14
+ah_start_cycle = 1
+ah_max_cycle = 40
+ah_grad_trust_region = 2.5
+kf_interval = 4
+kf_trust_region = 5
+canonicalization = True
+max_memory 4000 MB (current use 1754 MB)
+Set conv_tol_grad to 3.16228e-05
+  HOMO = -0.134761962210836  LUMO = -0.056634571603376  gap/eV = 2.12595
+Initial guess E= -518.887603976418  |g|= 1.10602
+macro= 0  E= -519.218846076298  delta_E= -0.331242  |g|= 0.621076  3 KF 15 JK
+macro= 1  E= -519.335065194005  delta_E= -0.116219  |g|= 0.0595004  4 KF 17 JK
+macro= 2  E= -519.336423816588  delta_E= -0.00135862  |g|= 0.0148734  3 KF 12 JK
+macro= 3  E= -519.336465886036  delta_E= -4.20694e-05  |g|= 2.72351e-05  4 KF 17 JK
+macro= 4  E= -519.336465886048  delta_E= -1.22782e-11  |g|= 7.34497e-06  1 KF 2 JK
+Canonicalize SCF orbitals
+macro X = 5  E=-519.336465886048  |g|= 7.34497e-06  total 16 KF 69 JK
+converged SCF energy = -519.336465886048
+rohf_internal: lowest eigs of H = [0.024 0.066 0.067 0.087 0.131]
+<class 'pyscf.soscf.newton_ah.SecondOrderROKS'> wavefunction is stable in the internal stability analysis
+davidson 0 7  |r|= 0.0342  e= [-0.052  0.     0.003  0.02   0.038  0.043  0.059]  max|de|= 0.059  lindep=    1
+davidson 1 14  |r|= 0.00527  e= [-0.052 -0.     0.001  0.019  0.037  0.042  0.059]  max|de|= -0.00234  lindep= 0.836
+davidson 2 21  |r|= 0.00118  e= [-0.052 -0.     0.001  0.019  0.037  0.042  0.059]  max|de|= -4.08e-05  lindep= 0.764
+davidson 3 28  |r|= 0.00049  e= [-0.052 -0.     0.001  0.019  0.037  0.042  0.059]  max|de|= -3.98e-06  lindep= 0.791
+root 0 converged  |r|= 2.86e-07  e= -0.05200470094363307  max|de|= -3.32e-11
+root 1 converged  |r|= 8.5e-06  e= -0.0003253749021216168  max|de|= -8.02e-09
+root 2 converged  |r|= 7.08e-06  e= 0.0006353743518923427  max|de|= -5.12e-09
+davidson 4 35  |r|= 0.000185  e= [-0.052 -0.     0.001  0.019  0.037  0.042  0.059]  max|de|= -6.82e-07  lindep= 0.825
+root 3 converged  |r|= 2.8e-06  e= 0.018924342823566795  max|de|= -2.38e-10
+root 6 converged  |r|= 2.58e-05  e= 0.058510172954333056  max|de|= -8.9e-09
+davidson 5 39  |r|= 4.31e-05  e= [-0.052 -0.     0.001  0.019  0.037  0.042  0.059]  max|de|= -5.28e-08  lindep= 0.804
+root 4 converged  |r|= 1.03e-05  e= 0.03721921795621293  max|de|= -2.58e-09
+root 5 converged  |r|= 1.09e-05  e= 0.042239098645008535  max|de|= -2.46e-09
+converged 6 41  |r|= 2.54e-05  e= [-0.052 -0.     0.001  0.019  0.037  0.042  0.059]  max|de|= -2.58e-09
+mol8, index_gx 0, gx_i 0.0
+Excited state 1   -1.41512 eV D<S^2>=     n/a
+99.88% OO(ab) 44a -> 43b   -0.99939
+========================================
+Excited state 2   -0.00885 eV D<S^2>=     n/a
+61.74% CO(ab) 42a -> 43b   -0.78574
+18.86% OO(ab) 43a -> 43b    0.43433
+18.86% OO(ab) 44a -> 44b   -0.43433
+========================================
+Excited state 3    0.01729 eV D<S^2>=     n/a
+ 0.49% CO(ab) 40a -> 43b   -0.06979
+38.05% CO(ab) 42a -> 43b    0.61689
+30.33% OO(ab) 43a -> 43b    0.55073
+30.33% OO(ab) 44a -> 44b   -0.55073
+========================================
+Excited state 4    0.51496 eV D<S^2>=     n/a
+ 0.27% CO(ab) 39a -> 43b   -0.05202
+99.29% CO(ab) 41a -> 43b   -0.99646
+========================================
+Excited state 5    1.01279 eV D<S^2>=     n/a
+98.88% CO(ab) 40a -> 43b   -0.99437
+ 0.36% OO(ab) 43a -> 43b   -0.06015
+ 0.36% OO(ab) 44a -> 44b    0.06015
+========================================
+Excited state 6    1.14938 eV D<S^2>=     n/a
+99.13% CO(ab) 39a -> 43b   -0.99564
+ 0.30% CO(ab) 41a -> 43b    0.05484
+========================================
+Excited state 7    1.59214 eV D<S^2>=     n/a
+99.48% CO(ab) 38a -> 43b    0.99740
+========================================
+davidson 0 7  |r|= 0.037  e= [-0.052  0.001  0.003  0.02   0.039  0.045  0.059]  max|de|= 0.0591  lindep=    1
+Old state -> New state
+    2     ->     1 
+    1     ->     2 
+davidson 1 14  |r|= 0.00539  e= [-0.052 -0.     0.     0.019  0.039  0.044  0.059]  max|de|= -0.00294  lindep= 0.828
+davidson 2 21  |r|= 0.00116  e= [-0.052 -0.     0.     0.019  0.039  0.044  0.059]  max|de|= -4.17e-05  lindep= 0.762
+davidson 3 28  |r|= 0.000475  e= [-0.052 -0.     0.     0.019  0.039  0.044  0.059]  max|de|= -3.79e-06  lindep= 0.783
+root 0 converged  |r|= 3.3e-07  e= -0.05205221766756451  max|de|= -4.14e-11
+root 1 converged  |r|= 4.76e-06  e= -0.00019048103692890367  max|de|= -2.85e-09
+root 3 converged  |r|= 1.27e-05  e= 0.018909385179297016  max|de|= -9.69e-09
+davidson 4 35  |r|= 0.000191  e= [-0.052 -0.     0.     0.019  0.039  0.044  0.059]  max|de|= -6.86e-07  lindep= 0.831
+root 2 converged  |r|= 1.45e-06  e= 0.00012092606143704332  max|de|= -1.46e-10
+davidson 5 39  |r|= 3.85e-05  e= [-0.052 -0.     0.     0.019  0.039  0.044  0.059]  max|de|= -5.04e-08  lindep= 0.784
+root 4 converged  |r|= 1.14e-05  e= 0.038633489978324144  max|de|= -2.39e-09
+root 5 converged  |r|= 1e-05  e= 0.04363613853475245  max|de|= -1.93e-09
+root 6 converged  |r|= 1.34e-05  e= 0.058518697017776004  max|de|= -1.49e-09
+converged 6 42  |r|= 1.34e-05  e= [-0.052 -0.     0.     0.019  0.039  0.044  0.059]  max|de|= -2.39e-09
+mol8, index_gx 1, gx_i 0.1
+Excited state 1   -1.41641 eV D<S^2>=     n/a
+99.87% OO(ab) 44a -> 43b   -0.99933
+========================================
+Excited state 2   -0.00518 eV D<S^2>=     n/a
+ 0.69% CO(ab) 40a -> 43b    0.08318
+ 3.03% CO(ab) 42a -> 43b    0.17398
+47.66% OO(ab) 43a -> 43b   -0.69033
+47.66% OO(ab) 44a -> 44b    0.69033
+========================================
+Excited state 3    0.00329 eV D<S^2>=     n/a
+96.75% CO(ab) 42a -> 43b   -0.98362
+ 1.44% OO(ab) 43a -> 43b   -0.12014
+ 1.44% OO(ab) 44a -> 44b    0.12014
+========================================
+Excited state 4    0.51455 eV D<S^2>=     n/a
+ 0.28% CO(ab) 39a -> 43b   -0.05247
+99.25% CO(ab) 41a -> 43b   -0.99627
+========================================
+Excited state 5    1.05127 eV D<S^2>=     n/a
+98.84% CO(ab) 40a -> 43b   -0.99418
+ 0.38% OO(ab) 43a -> 43b   -0.06135
+ 0.38% OO(ab) 44a -> 44b    0.06135
+========================================
+Excited state 6    1.18740 eV D<S^2>=     n/a
+99.10% CO(ab) 39a -> 43b    0.99551
+ 0.31% CO(ab) 41a -> 43b   -0.05539
+========================================
+Excited state 7    1.59237 eV D<S^2>=     n/a
+99.45% CO(ab) 38a -> 43b    0.99727
+========================================
+davidson 0 7  |r|= 0.0397  e= [-0.052  0.001  0.003  0.02   0.041  0.046  0.059]  max|de|= 0.0591  lindep=    1
+Old state -> New state
+    2     ->     1 
+    1     ->     2 
+davidson 1 14  |r|= 0.0056  e= [-0.052 -0.001  0.     0.019  0.04   0.045  0.059]  max|de|= -0.00344  lindep= 0.803
+davidson 2 21  |r|= 0.00116  e= [-0.052 -0.001  0.     0.019  0.04   0.045  0.059]  max|de|= -4.55e-05  lindep= 0.775
+davidson 3 28  |r|= 0.000489  e= [-0.052 -0.001  0.     0.019  0.04   0.045  0.059]  max|de|= -3.77e-06  lindep= 0.78
+root 0 converged  |r|= 3.96e-07  e= -0.05210696088907084  max|de|= -5.19e-11
+root 1 converged  |r|= 5.5e-06  e= -0.0007985854483412574  max|de|= -3.2e-09
+davidson 4 35  |r|= 0.000206  e= [-0.052 -0.001  0.     0.019  0.04   0.045  0.059]  max|de|= -7.41e-07  lindep= 0.833
+root 2 converged  |r|= 1.53e-06  e= 0.00030164265855836536  max|de|= -1.73e-10
+root 3 converged  |r|= 2.13e-06  e= 0.018859602100989935  max|de|= -1.95e-10
+davidson 5 40  |r|= 4.68e-05  e= [-0.052 -0.001  0.     0.019  0.04   0.045  0.059]  max|de|= -5.98e-08  lindep= 0.776
+root 4 converged  |r|= 1.05e-05  e= 0.040041340190566606  max|de|= -1.86e-09
+root 5 converged  |r|= 1.35e-05  e= 0.04501885686018462  max|de|= -3.19e-09
+root 6 converged  |r|= 1.72e-05  e= 0.0585141517890868  max|de|= -2.69e-09
+converged 6 43  |r|= 1.72e-05  e= [-0.052 -0.001  0.     0.019  0.04   0.045  0.059]  max|de|= -3.19e-09
+mol8, index_gx 2, gx_i 0.2
+Excited state 1   -1.41790 eV D<S^2>=     n/a
+99.85% OO(ab) 44a -> 43b   -0.99925
+========================================
+Excited state 2   -0.02173 eV D<S^2>=     n/a
+ 0.28% CV(ab) 39a -> 45b    0.05329
+ 0.27% CV(ab) 40a -> 46b    0.05173
+ 0.76% CO(ab) 40a -> 43b   -0.08704
+12.03% CO(ab) 42a -> 43b    0.34690
+42.98% OO(ab) 43a -> 43b    0.65562
+42.98% OO(ab) 44a -> 44b   -0.65562
+========================================
+Excited state 3    0.00821 eV D<S^2>=     n/a
+87.72% CO(ab) 42a -> 43b   -0.93657
+ 6.02% OO(ab) 43a -> 43b    0.24529
+ 6.02% OO(ab) 44a -> 44b   -0.24529
+========================================
+Excited state 4    0.51320 eV D<S^2>=     n/a
+ 0.28% CO(ab) 39a -> 43b   -0.05324
+99.18% CO(ab) 41a -> 43b   -0.99587
+========================================
+Excited state 5    1.08958 eV D<S^2>=     n/a
+98.79% CO(ab) 40a -> 43b    0.99394
+ 0.39% OO(ab) 43a -> 43b    0.06233
+ 0.39% OO(ab) 44a -> 44b   -0.06233
+========================================
+Excited state 6    1.22503 eV D<S^2>=     n/a
+99.05% CO(ab) 39a -> 43b    0.99522
+ 0.32% CO(ab) 41a -> 43b   -0.05646
+========================================
+Excited state 7    1.59225 eV D<S^2>=     n/a
+99.40% CO(ab) 38a -> 43b    0.99697
+========================================
+davidson 0 7  |r|= 0.0415  e= [-0.052  0.001  0.003  0.02   0.042  0.048  0.059]  max|de|= 0.0592  lindep=    1
+Old state -> New state
+    2     ->     1 
+    1     ->     2 
+davidson 1 14  |r|= 0.0059  e= [-0.052 -0.001  0.001  0.019  0.041  0.046  0.059]  max|de|= -0.00422  lindep= 0.78
+davidson 2 21  |r|= 0.00123  e= [-0.052 -0.002  0.001  0.019  0.041  0.046  0.058]  max|de|= -5.21e-05  lindep= 0.79
+davidson 3 28  |r|= 0.000536  e= [-0.052 -0.002  0.001  0.019  0.041  0.046  0.058]  max|de|= -4e-06  lindep= 0.782
+root 0 converged  |r|= 5.02e-07  e= -0.0521688313049399  max|de|= -6.83e-11
+root 1 converged  |r|= 6.2e-06  e= -0.0015238748254687365  max|de|= -3.86e-09
+davidson 4 35  |r|= 0.000225  e= [-0.052 -0.002  0.001  0.019  0.041  0.046  0.058]  max|de|= -8.56e-07  lindep= 0.823
+root 2 converged  |r|= 1.73e-06  e= 0.0005535260631987435  max|de|= -2.12e-10
+root 3 converged  |r|= 2.22e-06  e= 0.01877564862768167  max|de|= -2.29e-10
+davidson 5 40  |r|= 6.77e-05  e= [-0.052 -0.002  0.001  0.019  0.041  0.046  0.058]  max|de|= -8.25e-08  lindep= 0.782
+root 4 converged  |r|= 1.11e-05  e= 0.04144217630550529  max|de|= -2.32e-09
+root 5 converged  |r|= 2.03e-05  e= 0.046386739357360214  max|de|= -7.36e-09
+root 6 converged  |r|= 2.24e-05  e= 0.0584972535434812  max|de|= -5.78e-09
+converged 6 43  |r|= 2.24e-05  e= [-0.052 -0.002  0.001  0.019  0.041  0.046  0.058]  max|de|= -7.36e-09
+mol8, index_gx 3, gx_i 0.30000000000000004
+Excited state 1   -1.41959 eV D<S^2>=     n/a
+99.83% OO(ab) 44a -> 43b    0.99917
+========================================
+Excited state 2   -0.04147 eV D<S^2>=     n/a
+ 0.32% CV(ab) 39a -> 45b   -0.05634
+ 0.30% CV(ab) 40a -> 46b   -0.05477
+ 0.78% CO(ab) 40a -> 43b    0.08837
+16.31% CO(ab) 42a -> 43b   -0.40386
+40.77% OO(ab) 43a -> 43b   -0.63848
+40.77% OO(ab) 44a -> 44b    0.63848
+========================================
+Excited state 3    0.01506 eV D<S^2>=     n/a
+83.40% CO(ab) 42a -> 43b   -0.91325
+ 8.14% OO(ab) 43a -> 43b    0.28522
+ 8.14% OO(ab) 44a -> 44b   -0.28522
+========================================
+Excited state 4    0.51091 eV D<S^2>=     n/a
+ 0.26% CO(ab) 38a -> 43b    0.05094
+ 0.29% CO(ab) 39a -> 43b   -0.05427
+99.06% CO(ab) 41a -> 43b   -0.99527
+========================================
+Excited state 5    1.12770 eV D<S^2>=     n/a
+98.74% CO(ab) 40a -> 43b   -0.99366
+ 0.40% OO(ab) 43a -> 43b   -0.06313
+ 0.40% OO(ab) 44a -> 44b    0.06313
+========================================
+Excited state 6    1.26225 eV D<S^2>=     n/a
+98.95% CO(ab) 39a -> 43b   -0.99475
+ 0.34% CO(ab) 41a -> 43b    0.05803
+========================================
+Excited state 7    1.59179 eV D<S^2>=     n/a
+99.31% CO(ab) 38a -> 43b    0.99652
+ 0.26% CO(ab) 41a -> 43b    0.05067
+========================================
+davidson 0 7  |r|= 0.0423  e= [-0.052  0.001  0.003  0.02   0.044  0.049  0.059]  max|de|= 0.0592  lindep=    1
+davidson 1 14  |r|= 0.00627  e= [-0.052 -0.002  0.001  0.019  0.043  0.048  0.059]  max|de|= -0.00305  lindep= 0.764
+davidson 2 21  |r|= 0.00144  e= [-0.052 -0.002  0.001  0.019  0.043  0.048  0.058]  max|de|= -6.18e-05  lindep= 0.802
+davidson 3 28  |r|= 0.00061  e= [-0.052 -0.002  0.001  0.019  0.043  0.048  0.058]  max|de|= -5.27e-06  lindep= 0.785
+root 0 converged  |r|= 6.59e-07  e= -0.052237733668714405  max|de|= -9.81e-11
+root 1 converged  |r|= 6.7e-06  e= -0.0022818946648089436  max|de|= -4.37e-09
+davidson 4 35  |r|= 0.00025  e= [-0.052 -0.002  0.001  0.019  0.043  0.048  0.058]  max|de|= -1.03e-06  lindep= 0.816
+root 2 converged  |r|= 1.96e-06  e= 0.0007938151500654494  max|de|= -2.63e-10
+root 3 converged  |r|= 2.47e-06  e= 0.01865816134381535  max|de|= -2.82e-10
+davidson 5 40  |r|= 9.36e-05  e= [-0.052 -0.002  0.001  0.019  0.043  0.048  0.058]  max|de|= -1.2e-07  lindep= 0.794
+root 4 converged  |r|= 1.9e-05  e= 0.042835428233273666  max|de|= -5.64e-09
+root 6 converged  |r|= 2.7e-05  e= 0.0584688014081546  max|de|= -9.6e-09
+davidson 6 43  |r|= 2.76e-05  e= [-0.052 -0.002  0.001  0.019  0.043  0.048  0.058]  max|de|= -1.43e-08  lindep= 0.802
+root 5 converged  |r|= 5.78e-06  e= 0.04773922199591992  max|de|= -7.72e-10
+converged 7 44  |r|= 2.01e-05  e= [-0.052 -0.002  0.001  0.019  0.043  0.048  0.058]  max|de|= -7.72e-10
+mol8, index_gx 4, gx_i 0.4
+Excited state 1   -1.42146 eV D<S^2>=     n/a
+99.81% OO(ab) 44a -> 43b   -0.99907
+========================================
+Excited state 2   -0.06209 eV D<S^2>=     n/a
+ 0.36% CV(ab) 39a -> 45b   -0.05973
+ 0.34% CV(ab) 40a -> 46b   -0.05805
+ 0.81% CO(ab) 40a -> 43b    0.09026
+17.74% CO(ab) 42a -> 43b   -0.42121
+39.96% OO(ab) 43a -> 43b   -0.63210
+39.96% OO(ab) 44a -> 44b    0.63210
+========================================
+Excited state 3    0.02160 eV D<S^2>=     n/a
+81.92% CO(ab) 42a -> 43b   -0.90512
+ 8.84% OO(ab) 43a -> 43b    0.29738
+ 8.84% OO(ab) 44a -> 44b   -0.29738
+========================================
+Excited state 4    0.50771 eV D<S^2>=     n/a
+ 0.27% CO(ab) 38a -> 43b    0.05236
+ 0.31% CO(ab) 39a -> 43b   -0.05551
+98.90% CO(ab) 41a -> 43b   -0.99448
+========================================
+Excited state 5    1.16561 eV D<S^2>=     n/a
+98.67% CO(ab) 40a -> 43b    0.99333
+ 0.41% OO(ab) 43a -> 43b    0.06378
+ 0.41% OO(ab) 44a -> 44b   -0.06378
+========================================
+Excited state 6    1.29905 eV D<S^2>=     n/a
+98.82% CO(ab) 39a -> 43b    0.99408
+ 0.36% CO(ab) 41a -> 43b   -0.06005
+========================================
+Excited state 7    1.59102 eV D<S^2>=     n/a
+99.18% CO(ab) 38a -> 43b    0.99591
+ 0.28% CO(ab) 41a -> 43b    0.05273
+========================================
+davidson 0 7  |r|= 0.043  e= [-0.052  0.001  0.003  0.02   0.045  0.05   0.059]  max|de|= 0.0593  lindep=    1
+davidson 1 14  |r|= 0.00671  e= [-0.052 -0.003  0.001  0.019  0.044  0.049  0.058]  max|de|= -0.00361  lindep= 0.757
+davidson 2 21  |r|= 0.00171  e= [-0.052 -0.003  0.001  0.019  0.044  0.049  0.058]  max|de|= -7.49e-05  lindep= 0.809
+davidson 3 28  |r|= 0.000699  e= [-0.052 -0.003  0.001  0.019  0.044  0.049  0.058]  max|de|= -7.32e-06  lindep= 0.79
+root 0 converged  |r|= 8.47e-07  e= -0.05231357662067008  max|de|= -1.5e-10
+root 1 converged  |r|= 7.16e-06  e= -0.0030667928585210863  max|de|= -4.87e-09
+davidson 4 35  |r|= 0.000284  e= [-0.052 -0.003  0.001  0.019  0.044  0.049  0.058]  max|de|= -1.28e-06  lindep= 0.815
+root 2 converged  |r|= 2.22e-06  e= 0.0010182422074435163  max|de|= -3.25e-10
+root 3 converged  |r|= 2.77e-06  e= 0.018507763629646463  max|de|= -3.49e-10
+davidson 5 40  |r|= 0.000119  e= [-0.052 -0.003  0.001  0.019  0.044  0.049  0.058]  max|de|= -1.73e-07  lindep= 0.797
+davidson 6 43  |r|= 3.47e-05  e= [-0.052 -0.003  0.001  0.019  0.044  0.049  0.058]  max|de|= -2.31e-08  lindep=  0.8
+root 4 converged  |r|= 5.22e-06  e= 0.04422053123346733  max|de|= -6.7e-10
+root 5 converged  |r|= 7.71e-06  e= 0.04907565548430801  max|de|= -1.25e-09
+root 6 converged  |r|= 9.19e-06  e= 0.05842970250728687  max|de|= -1.1e-09
+converged 7 46  |r|= 9.19e-06  e= [-0.052 -0.003  0.001  0.019  0.044  0.049  0.058]  max|de|= -1.25e-09
+mol8, index_gx 5, gx_i 0.5
+Excited state 1   -1.42352 eV D<S^2>=     n/a
+99.79% OO(ab) 44a -> 43b    0.99897
+========================================
+Excited state 2   -0.08345 eV D<S^2>=     n/a
+ 0.40% CV(ab) 39a -> 45b    0.06316
+ 0.38% CV(ab) 40a -> 46b    0.06134
+ 0.85% CO(ab) 40a -> 43b   -0.09213
+18.32% CO(ab) 42a -> 43b    0.42801
+39.57% OO(ab) 43a -> 43b    0.62902
+39.57% OO(ab) 44a -> 44b   -0.62902
+========================================
+Excited state 3    0.02771 eV D<S^2>=     n/a
+81.29% CO(ab) 42a -> 43b    0.90161
+ 9.13% OO(ab) 43a -> 43b   -0.30213
+ 9.13% OO(ab) 44a -> 44b    0.30213
+========================================
+Excited state 4    0.50362 eV D<S^2>=     n/a
+ 0.29% CO(ab) 38a -> 43b    0.05411
+ 0.32% CO(ab) 39a -> 43b   -0.05691
+ 0.25% CO(ab) 40a -> 44b    0.05023
+98.71% CO(ab) 41a -> 43b   -0.99352
+========================================
+Excited state 5    1.20330 eV D<S^2>=     n/a
+98.59% CO(ab) 40a -> 43b    0.99294
+ 0.41% OO(ab) 43a -> 43b    0.06431
+ 0.41% OO(ab) 44a -> 44b   -0.06431
+========================================
+Excited state 6    1.33542 eV D<S^2>=     n/a
+98.63% CO(ab) 39a -> 43b   -0.99315
+ 0.39% CO(ab) 41a -> 43b    0.06252
+========================================
+Excited state 7    1.58995 eV D<S^2>=     n/a
+99.03% CO(ab) 38a -> 43b    0.99513
+ 0.30% CO(ab) 41a -> 43b    0.05519
+========================================
+davidson 0 7  |r|= 0.0439  e= [-0.052  0.     0.004  0.02   0.047  0.052  0.059]  max|de|= 0.0593  lindep=    1
+davidson 1 14  |r|= 0.00722  e= [-0.052 -0.004  0.001  0.018  0.046  0.05   0.058]  max|de|= -0.00413  lindep= 0.757
+davidson 2 21  |r|= 0.00202  e= [-0.052 -0.004  0.001  0.018  0.046  0.05   0.058]  max|de|= -9.19e-05  lindep= 0.816
+davidson 3 28  |r|= 0.000796  e= [-0.052 -0.004  0.001  0.018  0.046  0.05   0.058]  max|de|= -1.01e-05  lindep= 0.79
+root 0 converged  |r|= 1.05e-06  e= -0.05239627252913549  max|de|= -2.34e-10
+root 1 converged  |r|= 7.57e-06  e= -0.0038765251021381023  max|de|= -5.4e-09
+davidson 4 35  |r|= 0.000327  e= [-0.052 -0.004  0.001  0.018  0.046  0.05   0.058]  max|de|= -1.58e-06  lindep= 0.808
+root 2 converged  |r|= 2.49e-06  e= 0.0012262489771106208  max|de|= -4e-10
+root 3 converged  |r|= 3.07e-06  e= 0.018325068975732675  max|de|= -4.32e-10
+davidson 5 40  |r|= 0.000145  e= [-0.052 -0.004  0.001  0.018  0.046  0.05   0.058]  max|de|= -2.42e-07  lindep= 0.802
+davidson 6 43  |r|= 4.19e-05  e= [-0.052 -0.004  0.001  0.018  0.046  0.05   0.058]  max|de|= -3.4e-08  lindep= 0.801
+root 4 converged  |r|= 5.73e-06  e= 0.045596915627473214  max|de|= -8.97e-10
+root 5 converged  |r|= 1.01e-05  e= 0.05039523190053914  max|de|= -1.92e-09
+root 6 converged  |r|= 9.47e-06  e= 0.058381033946747526  max|de|= -1.24e-09
+converged 7 46  |r|= 1.01e-05  e= [-0.052 -0.004  0.001  0.018  0.046  0.05   0.058]  max|de|= -1.92e-09
+mol8, index_gx 6, gx_i 0.6000000000000001
+Excited state 1   -1.42578 eV D<S^2>=     n/a
+99.77% OO(ab) 44a -> 43b    0.99886
+========================================
+Excited state 2   -0.10549 eV D<S^2>=     n/a
+ 0.44% CV(ab) 39a -> 45b    0.06653
+ 0.42% CV(ab) 40a -> 46b    0.06458
+ 0.88% CO(ab) 40a -> 43b   -0.09385
+18.54% CO(ab) 42a -> 43b    0.43056
+39.36% OO(ab) 43a -> 43b    0.62734
+39.36% OO(ab) 44a -> 44b   -0.62734
+========================================
+Excited state 3    0.03337 eV D<S^2>=     n/a
+81.01% CO(ab) 42a -> 43b    0.90003
+ 9.23% OO(ab) 43a -> 43b   -0.30388
+ 9.23% OO(ab) 44a -> 44b    0.30388
+========================================
+Excited state 4    0.49865 eV D<S^2>=     n/a
+ 0.32% CO(ab) 38a -> 43b   -0.05616
+ 0.34% CO(ab) 39a -> 43b    0.05844
+ 0.35% CO(ab) 40a -> 44b   -0.05949
+98.48% CO(ab) 41a -> 43b    0.99237
+========================================
+Excited state 5    1.24076 eV D<S^2>=     n/a
+98.50% CO(ab) 40a -> 43b    0.99248
+ 0.42% OO(ab) 43a -> 43b    0.06474
+ 0.42% OO(ab) 44a -> 44b   -0.06474
+========================================
+Excited state 6    1.37132 eV D<S^2>=     n/a
+98.39% CO(ab) 39a -> 43b    0.99190
+ 0.37% CO(ab) 40a -> 44b   -0.06066
+ 0.43% CO(ab) 41a -> 43b   -0.06547
+========================================
+Excited state 7    1.58863 eV D<S^2>=     n/a
+98.83% CO(ab) 38a -> 43b    0.99412
+ 0.31% CO(ab) 39a -> 43b    0.05537
+ 0.34% CO(ab) 41a -> 43b    0.05795
+========================================
+davidson 0 7  |r|= 0.0449  e= [-0.052 -0.     0.004  0.02   0.048  0.053  0.059]  max|de|= 0.0594  lindep=    1
+davidson 1 14  |r|= 0.00778  e= [-0.052 -0.005  0.001  0.018  0.047  0.052  0.058]  max|de|= -0.00465  lindep= 0.762
+davidson 2 21  |r|= 0.00238  e= [-0.052 -0.005  0.001  0.018  0.047  0.052  0.058]  max|de|= -0.000113  lindep= 0.821
+davidson 3 28  |r|= 0.000898  e= [-0.052 -0.005  0.001  0.018  0.047  0.052  0.058]  max|de|= -1.37e-05  lindep= 0.79
+root 0 converged  |r|= 1.26e-06  e= -0.05248573734184844  max|de|= -3.54e-10
+root 1 converged  |r|= 7.94e-06  e= -0.004709793068591268  max|de|= -5.96e-09
+davidson 4 35  |r|= 0.000374  e= [-0.052 -0.005  0.001  0.018  0.047  0.052  0.058]  max|de|= -1.94e-06  lindep= 0.802
+root 2 converged  |r|= 2.77e-06  e= 0.0014179336891277233  max|de|= -4.92e-10
+root 3 converged  |r|= 3.4e-06  e= 0.018110683871593092  max|de|= -5.37e-10
+davidson 5 40  |r|= 0.000171  e= [-0.052 -0.005  0.001  0.018  0.047  0.052  0.058]  max|de|= -3.27e-07  lindep= 0.809
+davidson 6 43  |r|= 5e-05  e= [-0.052 -0.005  0.001  0.018  0.047  0.052  0.058]  max|de|= -4.78e-08  lindep= 0.802
+root 4 converged  |r|= 6.71e-06  e= 0.046963989031301015  max|de|= -1.26e-09
+root 5 converged  |r|= 1.28e-05  e= 0.05169683922394043  max|de|= -2.85e-09
+root 6 converged  |r|= 9.5e-06  e= 0.058324172123820656  max|de|= -1.31e-09
+converged 7 46  |r|= 1.28e-05  e= [-0.052 -0.005  0.001  0.018  0.047  0.052  0.058]  max|de|= -2.85e-09
+mol8, index_gx 7, gx_i 0.7000000000000001
+Excited state 1   -1.42821 eV D<S^2>=     n/a
+99.75% OO(ab) 44a -> 43b    0.99873
+========================================
+Excited state 2   -0.12816 eV D<S^2>=     n/a
+ 0.49% CV(ab) 39a -> 45b    0.06982
+ 0.46% CV(ab) 40a -> 46b    0.06775
+ 0.91% CO(ab) 40a -> 43b   -0.09540
+18.58% CO(ab) 42a -> 43b    0.43101
+39.23% OO(ab) 43a -> 43b    0.62636
+39.23% OO(ab) 44a -> 44b   -0.62636
+========================================
+Excited state 3    0.03858 eV D<S^2>=     n/a
+80.89% CO(ab) 42a -> 43b    0.89942
+ 9.25% OO(ab) 43a -> 43b   -0.30414
+ 9.25% OO(ab) 44a -> 44b    0.30414
+========================================
+Excited state 4    0.49282 eV D<S^2>=     n/a
+ 0.34% CO(ab) 38a -> 43b    0.05849
+ 0.36% CO(ab) 39a -> 43b   -0.06007
+ 0.47% CO(ab) 40a -> 44b    0.06861
+98.22% CO(ab) 41a -> 43b   -0.99106
+ 0.29% OV(ab) 44a -> 46b    0.05360
+========================================
+Excited state 5    1.27796 eV D<S^2>=     n/a
+98.39% CO(ab) 40a -> 43b    0.99194
+ 0.42% OO(ab) 43a -> 43b    0.06508
+ 0.42% OO(ab) 44a -> 44b   -0.06508
+========================================
+Excited state 6    1.40674 eV D<S^2>=     n/a
+ 0.34% CO(ab) 38a -> 43b    0.05868
+98.04% CO(ab) 39a -> 43b   -0.99018
+ 0.52% CO(ab) 40a -> 44b    0.07239
+ 0.48% CO(ab) 41a -> 43b    0.06898
+========================================
+Excited state 7    1.58708 eV D<S^2>=     n/a
+98.56% CO(ab) 38a -> 43b    0.99279
+ 0.44% CO(ab) 39a -> 43b    0.06609
+ 0.37% CO(ab) 41a -> 43b    0.06086
+========================================
+davidson 0 7  |r|= 0.0462  e= [-0.052 -0.     0.004  0.02   0.05   0.055  0.059]  max|de|= 0.0594  lindep=    1
+davidson 1 14  |r|= 0.00841  e= [-0.053 -0.006  0.002  0.018  0.048  0.053  0.058]  max|de|= -0.00518  lindep= 0.764
+davidson 2 21  |r|= 0.00277  e= [-0.053 -0.006  0.002  0.018  0.048  0.053  0.058]  max|de|= -0.00014  lindep= 0.824
+davidson 3 28  |r|= 0.001  e= [-0.053 -0.006  0.002  0.018  0.048  0.053  0.058]  max|de|= -1.81e-05  lindep= 0.792
+root 0 converged  |r|= 1.5e-06  e= -0.0525818904472885  max|de|= -5.12e-10
+root 1 converged  |r|= 8.26e-06  e= -0.005565554988289201  max|de|= -6.55e-09
+davidson 4 35  |r|= 0.000423  e= [-0.053 -0.006  0.002  0.018  0.048  0.053  0.058]  max|de|= -2.39e-06  lindep=  0.8
+root 2 converged  |r|= 3.06e-06  e= 0.0015935691447182057  max|de|= -6.06e-10
+root 3 converged  |r|= 3.8e-06  e= 0.01786521021208555  max|de|= -6.73e-10
+davidson 5 40  |r|= 0.0002  e= [-0.053 -0.006  0.002  0.018  0.048  0.053  0.058]  max|de|= -4.27e-07  lindep= 0.814
+davidson 6 43  |r|= 5.94e-05  e= [-0.053 -0.006  0.002  0.018  0.048  0.053  0.058]  max|de|= -6.58e-08  lindep= 0.805
+root 4 converged  |r|= 8.17e-06  e= 0.04832112383785796  max|de|= -1.86e-09
+root 5 converged  |r|= 1.58e-05  e= 0.05297870032136466  max|de|= -4.15e-09
+root 6 converged  |r|= 9.5e-06  e= 0.05826114502698013  max|de|= -1.35e-09
+converged 7 46  |r|= 1.58e-05  e= [-0.053 -0.006  0.002  0.018  0.048  0.053  0.058]  max|de|= -4.15e-09
+mol8, index_gx 8, gx_i 0.8
+Excited state 1   -1.43083 eV D<S^2>=     n/a
+99.72% OO(ab) 44a -> 43b   -0.99860
+========================================
+Excited state 2   -0.15145 eV D<S^2>=     n/a
+ 0.53% CV(ab) 39a -> 45b    0.07303
+ 0.50% CV(ab) 40a -> 46b    0.07082
+ 0.94% CO(ab) 40a -> 43b   -0.09678
+18.51% CO(ab) 42a -> 43b    0.43029
+39.16% OO(ab) 43a -> 43b    0.62579
+39.16% OO(ab) 44a -> 44b   -0.62579
+========================================
+Excited state 3    0.04336 eV D<S^2>=     n/a
+80.88% CO(ab) 42a -> 43b   -0.89932
+ 9.21% OO(ab) 43a -> 43b    0.30356
+ 9.21% OO(ab) 44a -> 44b   -0.30356
+========================================
+Excited state 4    0.48614 eV D<S^2>=     n/a
+ 0.37% CO(ab) 38a -> 43b    0.06108
+ 0.38% CO(ab) 39a -> 43b   -0.06177
+ 0.60% CO(ab) 40a -> 44b    0.07762
+97.93% CO(ab) 41a -> 43b   -0.98959
+ 0.37% OV(ab) 44a -> 46b    0.06083
+========================================
+Excited state 5    1.31488 eV D<S^2>=     n/a
+98.27% CO(ab) 40a -> 43b   -0.99130
+ 0.43% OO(ab) 43a -> 43b   -0.06535
+ 0.43% OO(ab) 44a -> 44b    0.06535
+========================================
+Excited state 6    1.44162 eV D<S^2>=     n/a
+ 0.55% CO(ab) 38a -> 43b    0.07445
+97.54% CO(ab) 39a -> 43b   -0.98763
+ 0.72% CO(ab) 40a -> 44b    0.08473
+ 0.54% CO(ab) 41a -> 43b    0.07322
+========================================
+Excited state 7    1.58537 eV D<S^2>=     n/a
+98.18% CO(ab) 38a -> 43b    0.99084
+ 0.69% CO(ab) 39a -> 43b    0.08304
+ 0.40% CO(ab) 41a -> 43b    0.06363
+========================================
+davidson 0 7  |r|= 0.0475  e= [-0.052 -0.001  0.005  0.02   0.051  0.056  0.059]  max|de|= 0.0595  lindep=    1
+davidson 1 14  |r|= 0.0091  e= [-0.053 -0.006  0.002  0.018  0.05   0.054  0.058]  max|de|= -0.00572  lindep= 0.769
+davidson 2 21  |r|= 0.00319  e= [-0.053 -0.006  0.002  0.018  0.05   0.054  0.058]  max|de|= -0.000172  lindep= 0.826
+davidson 3 28  |r|= 0.00111  e= [-0.053 -0.006  0.002  0.018  0.05   0.054  0.058]  max|de|= -2.35e-05  lindep= 0.794
+root 0 converged  |r|= 1.77e-06  e= -0.052684654544784194  max|de|= -7.05e-10
+root 1 converged  |r|= 8.52e-06  e= -0.006442895082426028  max|de|= -7.15e-09
+davidson 4 35  |r|= 0.000468  e= [-0.053 -0.006  0.002  0.018  0.05   0.054  0.058]  max|de|= -3.22e-06  lindep= 0.799
+root 2 converged  |r|= 3.37e-06  e= 0.001753478602760622  max|de|= -7.46e-10
+root 3 converged  |r|= 4.3e-06  e= 0.017589247302869697  max|de|= -8.51e-10
+davidson 5 40  |r|= 0.00023  e= [-0.053 -0.006  0.002  0.018  0.05   0.054  0.058]  max|de|= -5.51e-07  lindep= 0.816
+davidson 6 43  |r|= 7.05e-05  e= [-0.053 -0.006  0.002  0.018  0.05   0.054  0.058]  max|de|= -8.91e-08  lindep= 0.808
+root 4 converged  |r|= 1.03e-05  e= 0.04966763940755376  max|de|= -2.87e-09
+root 5 converged  |r|= 1.94e-05  e= 0.05423731341410205  max|de|= -5.98e-09
+root 6 converged  |r|= 9.77e-06  e= 0.05819567894861107  max|de|= -1.45e-09
+converged 7 46  |r|= 1.94e-05  e= [-0.053 -0.006  0.002  0.018  0.05   0.054  0.058]  max|de|= -5.98e-09
+mol8, index_gx 9, gx_i 0.9
+Excited state 1   -1.43362 eV D<S^2>=     n/a
+99.69% OO(ab) 44a -> 43b    0.99847
+========================================
+Excited state 2   -0.17532 eV D<S^2>=     n/a
+ 0.58% CV(ab) 39a -> 45b   -0.07614
+ 0.54% CV(ab) 40a -> 46b   -0.07381
+ 0.96% CO(ab) 40a -> 43b    0.09800
+18.39% CO(ab) 42a -> 43b   -0.42887
+39.12% OO(ab) 43a -> 43b   -0.62544
+39.12% OO(ab) 44a -> 44b    0.62544
+========================================
+Excited state 3    0.04771 eV D<S^2>=     n/a
+80.91% CO(ab) 42a -> 43b    0.89951
+ 9.15% OO(ab) 43a -> 43b   -0.30247
+ 9.15% OO(ab) 44a -> 44b    0.30247
+========================================
+Excited state 4    0.47863 eV D<S^2>=     n/a
+ 0.41% CO(ab) 38a -> 43b   -0.06393
+ 0.40% CO(ab) 39a -> 43b    0.06353
+ 0.75% CO(ab) 40a -> 44b   -0.08649
+97.61% CO(ab) 41a -> 43b    0.98796
+ 0.46% OV(ab) 44a -> 46b   -0.06791
+========================================
+Excited state 5    1.35153 eV D<S^2>=     n/a
+ 0.26% CO(ab) 39a -> 44b   -0.05073
+98.12% CO(ab) 40a -> 43b   -0.99056
+ 0.43% OO(ab) 43a -> 43b   -0.06557
+ 0.43% OO(ab) 44a -> 44b    0.06557
+========================================
+Excited state 6    1.47587 eV D<S^2>=     n/a
+ 1.05% CO(ab) 38a -> 43b    0.10231
+96.68% CO(ab) 39a -> 43b   -0.98326
+ 0.96% CO(ab) 40a -> 44b    0.09803
+ 0.62% CO(ab) 41a -> 43b    0.07864
+========================================
+Excited state 7    1.58358 eV D<S^2>=     n/a
+97.49% CO(ab) 38a -> 43b    0.98739
+ 1.26% CO(ab) 39a -> 43b    0.11215
+ 0.43% CO(ab) 41a -> 43b    0.06566
+ 0.30% OV(ab) 44a -> 46b    0.05492
+========================================
+davidson 0 7  |r|= 0.049  e= [-0.052 -0.001  0.005  0.02   0.052  0.058  0.06 ]  max|de|= 0.0595  lindep=    1
+davidson 1 14  |r|= 0.00992  e= [-0.053 -0.007  0.002  0.017  0.051  0.056  0.058]  max|de|= -0.00627  lindep= 0.777
+davidson 2 21  |r|= 0.00364  e= [-0.053 -0.007  0.002  0.017  0.051  0.055  0.058]  max|de|= -0.000213  lindep= 0.829
+davidson 3 28  |r|= 0.00121  e= [-0.053 -0.007  0.002  0.017  0.051  0.055  0.058]  max|de|= -2.99e-05  lindep= 0.796
+root 0 converged  |r|= 2.09e-06  e= -0.05279395552322601  max|de|= -9.33e-10
+root 1 converged  |r|= 8.73e-06  e= -0.007340976698732564  max|de|= -7.77e-09
+davidson 4 35  |r|= 0.000556  e= [-0.053 -0.007  0.002  0.017  0.051  0.055  0.058]  max|de|= -4.29e-06  lindep=  0.8
+root 2 converged  |r|= 3.71e-06  e= 0.0018979945450636054  max|de|= -9.2e-10
+root 3 converged  |r|= 4.92e-06  e= 0.017283393514967528  max|de|= -1.08e-09
+davidson 5 40  |r|= 0.000261  e= [-0.053 -0.007  0.002  0.017  0.051  0.055  0.058]  max|de|= -8.37e-07  lindep= 0.818
+davidson 6 43  |r|= 8.32e-05  e= [-0.053 -0.007  0.002  0.017  0.051  0.055  0.058]  max|de|= -1.18e-07  lindep= 0.813
+root 4 converged  |r|= 1.32e-05  e= 0.05100277953426568  max|de|= -4.65e-09
+root 5 converged  |r|= 2.36e-05  e= 0.05546340516998325  max|de|= -8.52e-09
+root 6 converged  |r|= 1.1e-05  e= 0.058137233195589076  max|de|= -1.81e-09
+converged 7 46  |r|= 2.36e-05  e= [-0.053 -0.007  0.002  0.017  0.051  0.055  0.058]  max|de|= -8.52e-09
+mol8, index_gx 10, gx_i 1.0
+Excited state 1   -1.43660 eV D<S^2>=     n/a
+99.66% OO(ab) 44a -> 43b    0.99832
+========================================
+Excited state 2   -0.19976 eV D<S^2>=     n/a
+ 0.63% CV(ab) 39a -> 45b    0.07916
+ 0.59% CV(ab) 40a -> 46b    0.07671
+ 0.98% CO(ab) 40a -> 43b   -0.09908
+18.23% CO(ab) 42a -> 43b    0.42701
+39.09% OO(ab) 43a -> 43b    0.62525
+39.09% OO(ab) 44a -> 44b   -0.62525
+========================================
+Excited state 3    0.05165 eV D<S^2>=     n/a
+80.98% CO(ab) 42a -> 43b    0.89988
+ 9.06% OO(ab) 43a -> 43b   -0.30105
+ 9.06% OO(ab) 44a -> 44b    0.30105
+========================================
+Excited state 4    0.47031 eV D<S^2>=     n/a
+ 0.45% CO(ab) 38a -> 43b   -0.06699
+ 0.43% CO(ab) 39a -> 43b    0.06533
+ 0.91% CO(ab) 40a -> 44b   -0.09524
+97.26% CO(ab) 41a -> 43b    0.98619
+ 0.56% OV(ab) 44a -> 46b   -0.07485
+========================================
+Excited state 5    1.38786 eV D<S^2>=     n/a
+ 0.35% CO(ab) 39a -> 44b   -0.05944
+97.94% CO(ab) 40a -> 43b   -0.98967
+ 0.43% OO(ab) 43a -> 43b   -0.06574
+ 0.43% OO(ab) 44a -> 44b    0.06574
+========================================
+Excited state 6    1.50924 eV D<S^2>=     n/a
+ 2.53% CO(ab) 38a -> 43b    0.15920
+94.70% CO(ab) 39a -> 43b   -0.97315
+ 1.28% CO(ab) 40a -> 44b    0.11307
+ 0.75% CO(ab) 41a -> 43b    0.08646
+========================================
+Excited state 7    1.58199 eV D<S^2>=     n/a
+95.80% CO(ab) 38a -> 43b    0.97879
+ 2.90% CO(ab) 39a -> 43b    0.17022
+ 0.42% CO(ab) 41a -> 43b    0.06517
+ 0.37% OV(ab) 44a -> 46b    0.06104
+========================================
+Done

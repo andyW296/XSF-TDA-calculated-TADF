@@ -1,0 +1,1688 @@
+Job started at: Tue Dec  2 20:44:26 CST 2025
+#INFO: **** input file is /export/home/lizd20/zhaohw/tddft/ten_mols/find_gx/mol7/mc_mol7.py ****
+# source /export/home/lizd20/clf/clf_jax/bin/activate
+
+from pyscf import gto, dft, scf, ao2mo, lib, tddft,fci
+from pyscf.fci import addons
+import numpy as np
+from pyscf.dft import numint
+import scipy
+from functools import reduce
+import h5py
+import pyscf.scf.stability as stab_mod
+
+import sys
+sys.path.append('/export/home/lizd20/zhaohw/tddft/')
+from SF_XTDA import SA_SF_TDA
+
+#angles = np.arange(0,181,5)
+nstates = 10
+bas = '6-31G*'
+funs = ['b3lyp','pbe0','bhandhlyp']
+#funs = ['bhandhlyp']
+def update_h5(name,count,excited,index_gx):
+    fname = name + '.h5'
+    f = h5py.File(fname,'a')
+    f['excited'][count,index_gx] = np.array(excited)
+    f.close()
+    return None 
+def write_h5(name,funs,nstates):
+    fname = name + '.h5'
+    len_r = len(funs)
+    f = h5py.File(fname,'w')
+    f['functional'] = funs
+    f['excited'] = np.zeros((len_r,6,nstates))
+    f.close()
+    return None
+
+name = 'mc_gx'
+write_h5(name,funs,nstates)
+gx = np.arange(6)*0.1
+
+for count,fun in enumerate(funs):    
+    mol = gto.M(                 
+          atom = '''
+ C 0.00000000 -0.00000000  2.57288762
+ C 0.00000000  0.00000000 -5.28547533
+ C 0.00000000  2.28819776 -1.33986473
+ C 0.00000000 -2.28819776 -1.33986473
+ C 0.00000000  2.34330473  3.82174697
+ C 0.00000000 -2.34330473  3.82174697
+ C 0.00000000  2.26733906 -3.98866184
+ C 0.00000000 -2.26733906 -3.98866184
+ C 0.00000000  4.51483069  0.12733957
+ C 0.00000000 -4.51483069  0.12733957
+ N 0.00000000  4.54965666  2.63028556
+ N 0.00000000 -0.00000000 -0.05181144
+ N 0.00000000 -4.54965666  2.63028556
+ H 0.00000000  0.00000000 -7.32242747
+ H 0.00000000  2.34321313  5.85832928
+ H 0.00000000 -2.34321313  5.85832928
+ H 0.00000000  6.29748236 -0.85930252
+ H 0.00000000 -6.29748236 -0.85930252
+ H 0.00000000  4.05836778 -4.95006415
+ H 0.00000000 -4.05836778 -4.95006415
+''',
+      basis = bas,
+      charge = 0,
+      spin = 2, 
+      verbose = 4,
+      unit = 'B',
+      symmetry=True,
+    )    
+
+    if fun == 'hf':
+        mf = scf.ROHF(mol)
+    else:
+        mf = dft.ROKS(mol)
+        mf.xc = fun
+    #mf.grids.level = 6
+    #mf.irrep_nelec = {'A1': (4,2), 'B1':(1,1), 'B2':(1,1)}
+    mf.grids.atom_grid = (99,590)
+    mf = mf.newton()
+    mf.kernel()
+    assert mf.converged
+    mo, _, stable, _ = mf.stability(return_status=True)
+    if stable is False:
+        dm = mf.make_rdm1(mo, mf.mo_occ)
+        mf.kernel(dm0=dm)
+        mo, _, stable, _ = mf.stability(return_status=True)
+        assert stable
+    if fun == 'b3lyp':
+        hyb = 0.2
+    elif fun == 'pbe0':
+        hyb = 0.25
+    elif fun == 'bhandhlyp':
+        hyb = 0.5
+    fglobal = (1-0.3)*hyb+0.3
+    for index_gx,gx_i in enumerate(gx):
+        sf_tda = SA_SF_TDA(mf,SA=3,method=1)
+        fx = fglobal * gx_i
+        e0, values = sf_tda.kernel(nstates=nstates,remove=True,fglobal=fx)
+        update_h5(name,count,e0,index_gx)
+        print(f'fun_{fun} {gx_i:3.2f}')
+        _ = sf_tda.analyse()
+        print('excited energy ',e0)
+
+print('Done')
+#INFO: ******************** input file end ********************
+
+
+System: uname_result(system='Linux', node='node22', release='3.10.0-1160.el7.x86_64', version='#1 SMP Mon Oct 19 16:18:59 UTC 2020', machine='x86_64')  Threads 48
+Python 3.9.0 (default, Nov 15 2020, 14:28:56) 
+[GCC 7.3.0]
+numpy 1.26.4  scipy 1.13.1  h5py 3.11.0
+Date: Tue Dec  2 20:44:28 2025
+PySCF version 2.11.0
+PySCF path  /export/home/lizd20/anaconda3/envs/zhw/lib/python3.9/site-packages/pyscf
+
+[CONFIG] conf_file None
+[INPUT] verbose = 4
+[INPUT] num. atoms = 20
+[INPUT] num. electrons = 88
+[INPUT] charge = 0
+[INPUT] spin (= nelec alpha-beta = 2S) = 2
+[INPUT] symmetry True subgroup None
+[INPUT] Mole.unit = B
+[INPUT] Symbol           X                Y                Z      unit          X                Y                Z       unit  Magmom
+[INPUT]  1 C      0.000000000000   0.000000000000   1.361513494762 AA    0.000000000000   0.000000000000   2.572887620000 Bohr   0.0
+[INPUT]  2 C      0.000000000000   0.000000000000  -2.796953093516 AA    0.000000000000   0.000000000000  -5.285475330000 Bohr   0.0
+[INPUT]  3 C      0.000000000000   1.210862108670  -0.709025880831 AA    0.000000000000   2.288197760000  -1.339864730000 Bohr   0.0
+[INPUT]  4 C      0.000000000000  -1.210862108670  -0.709025880831 AA    0.000000000000  -2.288197760000  -1.339864730000 Bohr   0.0
+[INPUT]  5 C      0.000000000000   1.240023461357   2.022381402427 AA    0.000000000000   2.343304730000   3.821746970000 Bohr   0.0
+[INPUT]  6 C      0.000000000000  -1.240023461357   2.022381402427 AA    0.000000000000  -2.343304730000   3.821746970000 Bohr   0.0
+[INPUT]  7 C      0.000000000000   1.199824159981  -2.110708947794 AA    0.000000000000   2.267339060000  -3.988661840000 Bohr   0.0
+[INPUT]  8 C      0.000000000000  -1.199824159981  -2.110708947794 AA    0.000000000000  -2.267339060000  -3.988661840000 Bohr   0.0
+[INPUT]  9 C      0.000000000000   2.389145512310   0.067385198492 AA    0.000000000000   4.514830690000   0.127339570000 Bohr   0.0
+[INPUT] 10 C      0.000000000000  -2.389145512310   0.067385198492 AA    0.000000000000  -4.514830690000   0.127339570000 Bohr   0.0
+[INPUT] 11 N      0.000000000000   2.407574621982   1.391887176564 AA    0.000000000000   4.549656660000   2.630285560000 Bohr   0.0
+[INPUT] 12 N      0.000000000000   0.000000000000  -0.027417433313 AA    0.000000000000   0.000000000000  -0.051811440000 Bohr   0.0
+[INPUT] 13 N      0.000000000000  -2.407574621982   1.391887176564 AA    0.000000000000  -4.549656660000   2.630285560000 Bohr   0.0
+[INPUT] 14 H      0.000000000000   0.000000000000  -3.874861745739 AA    0.000000000000   0.000000000000  -7.322427470000 Bohr   0.0
+[INPUT] 15 H      0.000000000000   1.239974988725   3.100094349041 AA    0.000000000000   2.343213130000   5.858329280000 Bohr   0.0
+[INPUT] 16 H      0.000000000000  -1.239974988725   3.100094349041 AA    0.000000000000  -2.343213130000   5.858329280000 Bohr   0.0
+[INPUT] 17 H      0.000000000000   3.332484151083  -0.454723310870 AA    0.000000000000   6.297482360000  -0.859302520000 Bohr   0.0
+[INPUT] 18 H      0.000000000000  -3.332484151083  -0.454723310870 AA    0.000000000000  -6.297482360000  -0.859302520000 Bohr   0.0
+[INPUT] 19 H      0.000000000000   2.147595742708  -2.619461140772 AA    0.000000000000   4.058367780000  -4.950064150000 Bohr   0.0
+[INPUT] 20 H      0.000000000000  -2.147595742708  -2.619461140772 AA    0.000000000000  -4.058367780000  -4.950064150000 Bohr   0.0
+
+nuclear repulsion = 732.669049684228
+point group symmetry = C2v
+symmetry origin: [ 0.          0.         -0.04081808]
+symmetry axis x: [1. 0. 0.]
+symmetry axis y: [0. 1. 0.]
+symmetry axis z: [0. 0. 1.]
+num. orbitals of irrep A1 = 79
+num. orbitals of irrep A2 = 23
+num. orbitals of irrep B1 = 29
+num. orbitals of irrep B2 = 65
+number of shells = 92
+number of NR pGTOs = 379
+number of NR cGTOs = 196
+basis = 6-31G*
+ecp = {}
+CPU time:         3.42
+Freeze 0 electrons in irreps []
+    88 free electrons in irreps A1 A2 B1 B2
+
+
+
+
+******** <class 'pyscf.soscf.newton_ah.SecondOrderSymAdaptedROKS'> ********
+method = SecondOrderSymAdaptedROKS
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-09
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/192306.1.lizd20.q/tmpuc0ecpb3
+max_memory 4000 MB (current use 153 MB)
+num. doubly occ = 43  num. singly occ = 2
+XC library pyscf.dft.libxc version 7.0.0
+    S. Lehtola, C. Steigemann, M. J.T. Oliveira, and M. A.L. Marques.,  SoftwareX 7, 1–5 (2018)
+XC functionals = b3lyp
+    P. J. Stephens, F. J. Devlin, C. F. Chabalowski, and M. J. Frisch.,  J. Phys. Chem. 98, 11623 (1994)
+radial grids: 
+    Treutler-Ahlrichs [JCP 102, 346 (1995); DOI:10.1063/1.469408] (M4) radial grids
+    
+becke partition: Becke, JCP 88, 2547 (1988); DOI:10.1063/1.454033
+pruning grids: <function nwchem_prune at 0x2b112cb359d0>
+grids dens level: 3
+symmetrized grids: True
+atomic radii adjust function: <function treutler_atomic_radii_adjust at 0x2b112c528160>
+User specified grid scheme (99, 590)
+small_rho_cutoff = 1e-07
+******** <class 'pyscf.dft.rks_symm.SymAdaptedROKS'> Newton solver flags ********
+SCF tol = 1e-09
+conv_tol_grad = None
+max. SCF cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/192306.1.lizd20.q/tmpuc0ecpb3
+max_cycle_inner = 12
+max_stepsize = 0.05
+ah_start_tol = 1e+09
+ah_level_shift = 0
+ah_conv_tol = 1e-12
+ah_lindep = 1e-14
+ah_start_cycle = 1
+ah_max_cycle = 40
+ah_grad_trust_region = 2.5
+kf_interval = 4
+kf_trust_region = 5
+canonicalization = True
+max_memory 4000 MB (current use 153 MB)
+Set conv_tol_grad to 3.16228e-05
+tot grids = 637600
+HOMO (B1) = -0.133367483815798  LUMO (A2) = -0.096338514750962
+Initial guess E= -549.36928588353  |g|= 0.526462
+macro= 0  E= -549.444880981335  delta_E= -0.0755951  |g|= 7.86173e-05  6 KF 24 JK
+macro= 1  E= -549.444880993341  delta_E= -1.20062e-08  |g|= 1.59443e-05  2 KF 7 JK
+macro= 2  E= -549.444880993339  delta_E= 2.04636e-12  |g|= 8.86282e-06  1 KF 2 JK
+Canonicalize SCF orbitals
+macro X = 3  E=-549.444880993339  |g|= 8.86282e-06  total 10 KF 37 JK
+converged SCF energy = -549.444880993339
+rohf_internal: lowest eigs of H = [0.09558623 0.16761698 0.27362102]
+<class 'pyscf.soscf.newton_ah.SecondOrderSymAdaptedROKS'> wavefunction is stable in the internal stability analysis
+method=0 (default) ALDA0, method=1 multicollinear, method=2 collinear
+fglobal 0.0
+50
+Converged  [ True  True  True  True  True  True  True  True  True  True]
+fun_b3lyp 0.00
+ground_sym  3
+ 99% OO(ab) 45a -> 44b    0.99596 
+Excited state 1   -0.92257 eV -549.47878466 Hartree A1
+  
+ 49% OO(ab) 44a -> 44b    0.69801 
+ 49% OO(ab) 45a -> 45b   -0.69801 
+Excited state 2    0.03189 eV -549.44370913 Hartree B2
+  
+ 98% OV(ab) 45a -> 46b    0.98879 
+Excited state 3    1.50883 eV -549.38943268 Hartree A1
+  
+ 97% OV(ab) 45a -> 47b    0.98692 
+Excited state 4    1.71633 eV -549.38180707 Hartree B2
+  
+ 98% OO(ab) 44a -> 45b    0.99225 
+Excited state 5    1.96536 eV -549.37265524 Hartree A1
+  
+ 98% CO(ab) 43a -> 44b   -0.99203 
+Excited state 6    2.51779 eV -549.35235376 Hartree A2
+  
+ 15% CO(ab) 40a -> 44b   -0.38644 
+ 83% OV(ab) 44a -> 46b   -0.91010 
+Excited state 7    2.66833 eV -549.34682167 Hartree B2
+  
+ 33% CO(ab) 41a -> 44b   -0.57799 
+ 63% OV(ab) 44a -> 47b   -0.79433 
+  1% OV(ab) 45a -> 49b    0.11463 
+Excited state 8    2.75521 eV -549.34362874 Hartree A1
+  
+  2% CV(ab) 43a -> 47b    0.14257 
+ 97% CO(ab) 42a -> 44b   -0.98493 
+Excited state 9    3.08499 eV -549.33150986 Hartree B1
+  
+  6% CV(ab) 42a -> 46b   -0.24801 
+  1% CV(ab) 42a -> 49b   -0.11932 
+ 90% CO(ab) 43a -> 45b   -0.95076 
+Excited state 10    3.64549 eV -549.31091183 Hartree B1
+  
+excited energy  [-0.92256565  0.03188811  1.50882551  1.71632888  1.96536291  2.51779413
+  2.66833011  2.75521407  3.08498546  3.64548658]
+method=0 (default) ALDA0, method=1 multicollinear, method=2 collinear
+fglobal 0.044
+50
+Converged  [ True  True  True  True  True  True  True  True  True  True]
+fun_b3lyp 0.10
+ground_sym  3
+ 99% OO(ab) 45a -> 44b   -0.99550 
+Excited state 1   -0.93021 eV -549.47906573 Hartree A1
+  
+ 49% OO(ab) 44a -> 44b    0.69692 
+ 49% OO(ab) 45a -> 45b   -0.69692 
+Excited state 2    0.00593 eV -549.44466292 Hartree B2
+  
+ 98% OV(ab) 45a -> 46b    0.98757 
+Excited state 3    1.56329 eV -549.38743122 Hartree A1
+  
+ 97% OV(ab) 45a -> 47b   -0.98580 
+Excited state 4    1.76782 eV -549.37991495 Hartree B2
+  
+ 98% OO(ab) 44a -> 45b   -0.99122 
+Excited state 5    1.95734 eV -549.37294990 Hartree A1
+  
+ 98% CO(ab) 43a -> 44b    0.99158 
+Excited state 6    2.52055 eV -549.35225239 Hartree A2
+  
+ 15% CO(ab) 40a -> 44b    0.38201 
+ 83% OV(ab) 44a -> 46b    0.90995 
+Excited state 7    2.69627 eV -549.34579477 Hartree B2
+  
+ 32% CO(ab) 41a -> 44b    0.56894 
+ 64% OV(ab) 44a -> 47b    0.79764 
+  2% OV(ab) 45a -> 49b   -0.12424 
+Excited state 8    2.78313 eV -549.34260285 Hartree A1
+  
+  2% CV(ab) 43a -> 47b   -0.14620 
+ 97% CO(ab) 42a -> 44b    0.98419 
+Excited state 9    3.08762 eV -549.33141297 Hartree B1
+  
+  6% CV(ab) 42a -> 46b    0.24806 
+  1% CV(ab) 42a -> 49b    0.12088 
+ 90% CO(ab) 43a -> 45b    0.95030 
+Excited state 10    3.63597 eV -549.31126142 Hartree B1
+  
+excited energy  [-0.93021404  0.00593416  1.56328793  1.76781593  1.95734465  2.52055266
+  2.69627329  2.78312992  3.0876221   3.63597362]
+method=0 (default) ALDA0, method=1 multicollinear, method=2 collinear
+fglobal 0.088
+50
+Converged  [ True  True  True  True  True  True  True  True  True  True]
+fun_b3lyp 0.20
+ground_sym  3
+ 99% OO(ab) 45a -> 44b    0.99500 
+Excited state 1   -0.93846 eV -549.47936861 Hartree A1
+  
+ 48% OO(ab) 44a -> 44b    0.69580 
+ 48% OO(ab) 45a -> 45b   -0.69580 
+Excited state 2   -0.02156 eV -549.44567342 Hartree B2
+  
+ 97% OV(ab) 45a -> 46b    0.98573 
+Excited state 3    1.61650 eV -549.38547581 Hartree A1
+  
+ 97% OV(ab) 45a -> 47b    0.98393 
+Excited state 4    1.81769 eV -549.37808196 Hartree B2
+  
+ 98% OO(ab) 44a -> 45b   -0.98995 
+Excited state 5    1.94882 eV -549.37326316 Hartree A1
+  
+ 98% CO(ab) 43a -> 44b    0.99113 
+Excited state 6    2.52318 eV -549.35215598 Hartree A2
+  
+ 14% CO(ab) 40a -> 44b    0.37706 
+ 83% OV(ab) 44a -> 46b    0.90905 
+Excited state 7    2.72479 eV -549.34474685 Hartree B2
+  
+ 31% CO(ab) 41a -> 44b    0.55953 
+ 64% OV(ab) 44a -> 47b    0.80045 
+  2% OV(ab) 45a -> 49b   -0.13407 
+Excited state 8    2.81111 eV -549.34157449 Hartree A1
+  
+  2% CV(ab) 43a -> 47b   -0.14970 
+ 97% CO(ab) 42a -> 44b    0.98344 
+Excited state 9    3.09012 eV -549.33132105 Hartree B1
+  
+  6% CV(ab) 42a -> 46b   -0.24809 
+  1% CV(ab) 42a -> 49b   -0.12241 
+ 90% CO(ab) 43a -> 45b   -0.94984 
+Excited state 10    3.62637 eV -549.31161427 Hartree B1
+  
+excited energy  [-0.93845594 -0.02156313  1.61649744  1.81769424  1.94882042  2.52317602
+  2.72478881  2.8111131   3.09012331  3.62637218]
+method=0 (default) ALDA0, method=1 multicollinear, method=2 collinear
+fglobal 0.132
+50
+Converged  [ True  True  True  True  True  True  True  True  True  True]
+fun_b3lyp 0.30
+ground_sym  3
+ 99% OO(ab) 45a -> 44b    0.99448 
+Excited state 1   -0.94728 eV -549.47969275 Hartree A1
+  
+ 48% OO(ab) 44a -> 44b    0.69466 
+ 48% OO(ab) 45a -> 45b   -0.69466 
+Excited state 2   -0.05052 eV -549.44673768 Hartree B2
+  
+  1% CO(ab) 41a -> 44b    0.10025 
+ 97% OV(ab) 45a -> 46b   -0.98301 
+Excited state 3    1.66836 eV -549.38356989 Hartree A1
+  
+  1% CO(ab) 40a -> 44b   -0.10322 
+ 96% OV(ab) 45a -> 47b   -0.98120 
+Excited state 4    1.86587 eV -549.37631172 Hartree B2
+  
+ 98% OO(ab) 44a -> 45b    0.98820 
+Excited state 5    1.93986 eV -549.37359233 Hartree A1
+  
+  1% CV(ab) 42a -> 47b    0.10239 
+ 98% CO(ab) 43a -> 44b   -0.99068 
+Excited state 6    2.52567 eV -549.35206441 Hartree A2
+  
+ 14% CO(ab) 40a -> 44b    0.37143 
+ 82% OV(ab) 44a -> 46b    0.90735 
+Excited state 7    2.75398 eV -549.34367423 Hartree B2
+  
+ 30% CO(ab) 41a -> 44b   -0.54970 
+ 64% OV(ab) 44a -> 47b   -0.80274 
+  2% OV(ab) 45a -> 49b    0.14413 
+Excited state 8    2.83921 eV -549.34054180 Hartree A1
+  
+  2% CV(ab) 43a -> 47b    0.15305 
+ 97% CO(ab) 42a -> 44b   -0.98271 
+Excited state 9    3.09249 eV -549.33123394 Hartree B1
+  
+  6% CV(ab) 42a -> 46b   -0.24808 
+  2% CV(ab) 42a -> 49b   -0.12387 
+ 90% CO(ab) 43a -> 45b   -0.94940 
+Excited state 10    3.61668 eV -549.31197030 Hartree B1
+  
+excited energy  [-0.94727622 -0.0505231   1.66835992  1.86586502  1.9398634   2.52566789
+  2.75397609  2.83921396  3.09249361  3.61668409]
+method=0 (default) ALDA0, method=1 multicollinear, method=2 collinear
+fglobal 0.176
+50
+Converged  [ True  True  True  True  True  True  True  True  True  True]
+fun_b3lyp 0.40
+ground_sym  3
+ 99% OO(ab) 45a -> 44b   -0.99394 
+Excited state 1   -0.95666 eV -549.48003762 Hartree A1
+  
+  1% CV(ab) 40a -> 46b    0.10427 
+ 48% OO(ab) 44a -> 44b    0.69351 
+ 48% OO(ab) 45a -> 45b   -0.69351 
+Excited state 2   -0.08087 eV -549.44785290 Hartree B2
+  
+  1% CO(ab) 41a -> 44b    0.10857 
+ 96% OV(ab) 45a -> 46b   -0.97882 
+Excited state 3    1.71873 eV -549.38171870 Hartree A1
+  
+  1% CO(ab) 40a -> 44b    0.11373 
+ 96% OV(ab) 45a -> 47b    0.97752 
+Excited state 4    1.91223 eV -549.37460779 Hartree B2
+  
+ 97% OO(ab) 44a -> 45b    0.98542 
+Excited state 5    1.93059 eV -549.37393309 Hartree A1
+  
+  1% CV(ab) 42a -> 47b    0.10512 
+ 98% CO(ab) 43a -> 44b   -0.99023 
+Excited state 6    2.52803 eV -549.35197754 Hartree A2
+  
+ 13% CO(ab) 40a -> 44b    0.36506 
+ 82% OV(ab) 44a -> 46b    0.90476 
+  2% OV(ab) 45a -> 47b   -0.12311 
+Excited state 7    2.78393 eV -549.34257337 Hartree B2
+  
+ 29% CO(ab) 41a -> 44b   -0.53939 
+ 65% OV(ab) 44a -> 47b   -0.80446 
+  1% OV(ab) 45a -> 46b   -0.11127 
+  2% OV(ab) 45a -> 49b    0.15441 
+Excited state 8    2.86748 eV -549.33950292 Hartree A1
+  
+  2% CV(ab) 43a -> 47b    0.15626 
+ 96% CO(ab) 42a -> 44b   -0.98197 
+Excited state 9    3.09474 eV -549.33115149 Hartree B1
+  
+  6% CV(ab) 42a -> 46b    0.24805 
+  2% CV(ab) 42a -> 49b    0.12529 
+ 90% CO(ab) 43a -> 45b    0.94897 
+Excited state 10    3.60691 eV -549.31232945 Hartree B1
+  
+excited energy  [-0.95666056 -0.08086981  1.71873357  1.9122311   1.93059062  2.52803175
+  2.7839322   2.86748321  3.0947372   3.60691118]
+method=0 (default) ALDA0, method=1 multicollinear, method=2 collinear
+fglobal 0.21999999999999997
+50
+Converged  [ True  True  True  True  True  True  True  True  True  True]
+fun_b3lyp 0.50
+ground_sym  3
+ 99% OO(ab) 45a -> 44b   -0.99336 
+Excited state 1   -0.96660 eV -549.48040272 Hartree A1
+  
+  1% CV(ab) 40a -> 46b   -0.10906 
+  1% CV(ab) 41a -> 47b   -0.10287 
+ 48% OO(ab) 44a -> 44b   -0.69236 
+ 48% OO(ab) 45a -> 45b    0.69236 
+Excited state 2   -0.11253 eV -549.44901647 Hartree B2
+  
+  1% CO(ab) 41a -> 44b    0.11714 
+ 94% OV(ab) 45a -> 46b   -0.97135 
+  2% OO(ab) 44a -> 45b   -0.13654 
+Excited state 3    1.76735 eV -549.37993222 Hartree A1
+  
+  2% OV(ab) 45a -> 46b   -0.13287 
+ 96% OO(ab) 44a -> 45b    0.97979 
+Excited state 4    1.92125 eV -549.37427649 Hartree A1
+  
+  2% CO(ab) 40a -> 44b    0.12438 
+  2% OV(ab) 44a -> 46b    0.12274 
+ 95% OV(ab) 45a -> 47b    0.97280 
+Excited state 5    1.95670 eV -549.37297359 Hartree B2
+  
+  1% CV(ab) 42a -> 47b    0.10777 
+ 98% CO(ab) 43a -> 44b   -0.98978 
+Excited state 6    2.53027 eV -549.35189525 Hartree A2
+  
+ 13% CO(ab) 40a -> 44b   -0.35797 
+ 81% OV(ab) 44a -> 46b   -0.90120 
+  2% OV(ab) 45a -> 47b    0.15286 
+Excited state 7    2.81475 eV -549.34144088 Hartree B2
+  
+ 28% CO(ab) 41a -> 44b    0.52856 
+ 65% OV(ab) 44a -> 47b    0.80561 
+  2% OV(ab) 45a -> 46b    0.13191 
+  3% OV(ab) 45a -> 49b   -0.16486 
+Excited state 8    2.89597 eV -549.33845600 Hartree A1
+  
+  3% CV(ab) 43a -> 47b    0.15935 
+ 96% CO(ab) 42a -> 44b   -0.98124 
+Excited state 9    3.09686 eV -549.33107356 Hartree B1
+  
+  6% CV(ab) 42a -> 46b   -0.24799 
+  2% CV(ab) 42a -> 49b   -0.12668 
+ 90% CO(ab) 43a -> 45b   -0.94854 
+Excited state 10    3.59706 eV -549.31269165 Hartree B1
+  
+excited energy  [-0.96659539 -0.11253206  1.76734595  1.92124645  1.95670001  2.53027092
+  2.81474888  2.89597144  3.09685795  3.59705515]
+#INFO: **** input file is /export/home/lizd20/zhaohw/tddft/ten_mols/find_gx/mol7/mc_mol7.py ****
+# source /export/home/lizd20/clf/clf_jax/bin/activate
+
+from pyscf import gto, dft, scf, ao2mo, lib, tddft,fci
+from pyscf.fci import addons
+import numpy as np
+from pyscf.dft import numint
+import scipy
+from functools import reduce
+import h5py
+import pyscf.scf.stability as stab_mod
+
+import sys
+sys.path.append('/export/home/lizd20/zhaohw/tddft/')
+from SF_XTDA import SA_SF_TDA
+
+#angles = np.arange(0,181,5)
+nstates = 10
+bas = '6-31G*'
+funs = ['b3lyp','pbe0','bhandhlyp']
+#funs = ['bhandhlyp']
+def update_h5(name,count,excited,index_gx):
+    fname = name + '.h5'
+    f = h5py.File(fname,'a')
+    f['excited'][count,index_gx] = np.array(excited)
+    f.close()
+    return None 
+def write_h5(name,funs,nstates):
+    fname = name + '.h5'
+    len_r = len(funs)
+    f = h5py.File(fname,'w')
+    f['functional'] = funs
+    f['excited'] = np.zeros((len_r,6,nstates))
+    f.close()
+    return None
+
+name = 'mc_gx'
+write_h5(name,funs,nstates)
+gx = np.arange(6)*0.1
+
+for count,fun in enumerate(funs):    
+    mol = gto.M(                 
+          atom = '''
+ C 0.00000000 -0.00000000  2.57288762
+ C 0.00000000  0.00000000 -5.28547533
+ C 0.00000000  2.28819776 -1.33986473
+ C 0.00000000 -2.28819776 -1.33986473
+ C 0.00000000  2.34330473  3.82174697
+ C 0.00000000 -2.34330473  3.82174697
+ C 0.00000000  2.26733906 -3.98866184
+ C 0.00000000 -2.26733906 -3.98866184
+ C 0.00000000  4.51483069  0.12733957
+ C 0.00000000 -4.51483069  0.12733957
+ N 0.00000000  4.54965666  2.63028556
+ N 0.00000000 -0.00000000 -0.05181144
+ N 0.00000000 -4.54965666  2.63028556
+ H 0.00000000  0.00000000 -7.32242747
+ H 0.00000000  2.34321313  5.85832928
+ H 0.00000000 -2.34321313  5.85832928
+ H 0.00000000  6.29748236 -0.85930252
+ H 0.00000000 -6.29748236 -0.85930252
+ H 0.00000000  4.05836778 -4.95006415
+ H 0.00000000 -4.05836778 -4.95006415
+''',
+      basis = bas,
+      charge = 0,
+      spin = 2, 
+      verbose = 4,
+      unit = 'B',
+      symmetry=True,
+    )    
+
+    if fun == 'hf':
+        mf = scf.ROHF(mol)
+    else:
+        mf = dft.ROKS(mol)
+        mf.xc = fun
+    #mf.grids.level = 6
+    #mf.irrep_nelec = {'A1': (4,2), 'B1':(1,1), 'B2':(1,1)}
+    mf.grids.atom_grid = (99,590)
+    mf = mf.newton()
+    mf.kernel()
+    assert mf.converged
+    mo, _, stable, _ = mf.stability(return_status=True)
+    if stable is False:
+        dm = mf.make_rdm1(mo, mf.mo_occ)
+        mf.kernel(dm0=dm)
+        mo, _, stable, _ = mf.stability(return_status=True)
+        assert stable
+    if fun == 'b3lyp':
+        hyb = 0.2
+    elif fun == 'pbe0':
+        hyb = 0.25
+    elif fun == 'bhandhlyp':
+        hyb = 0.5
+    fglobal = (1-0.3)*hyb+0.3
+    for index_gx,gx_i in enumerate(gx):
+        sf_tda = SA_SF_TDA(mf,SA=3,method=1)
+        fx = fglobal * gx_i
+        e0, values = sf_tda.kernel(nstates=nstates,remove=True,fglobal=fx)
+        update_h5(name,count,e0,index_gx)
+        print(f'fun_{fun} {gx_i:3.2f}')
+        _ = sf_tda.analyse()
+        print('excited energy ',e0)
+
+print('Done')
+#INFO: ******************** input file end ********************
+
+
+System: uname_result(system='Linux', node='node22', release='3.10.0-1160.el7.x86_64', version='#1 SMP Mon Oct 19 16:18:59 UTC 2020', machine='x86_64')  Threads 48
+Python 3.9.0 (default, Nov 15 2020, 14:28:56) 
+[GCC 7.3.0]
+numpy 1.26.4  scipy 1.13.1  h5py 3.11.0
+Date: Tue Dec  2 22:54:04 2025
+PySCF version 2.11.0
+PySCF path  /export/home/lizd20/anaconda3/envs/zhw/lib/python3.9/site-packages/pyscf
+
+[CONFIG] conf_file None
+[INPUT] verbose = 4
+[INPUT] num. atoms = 20
+[INPUT] num. electrons = 88
+[INPUT] charge = 0
+[INPUT] spin (= nelec alpha-beta = 2S) = 2
+[INPUT] symmetry True subgroup None
+[INPUT] Mole.unit = B
+[INPUT] Symbol           X                Y                Z      unit          X                Y                Z       unit  Magmom
+[INPUT]  1 C      0.000000000000   0.000000000000   1.361513494762 AA    0.000000000000   0.000000000000   2.572887620000 Bohr   0.0
+[INPUT]  2 C      0.000000000000   0.000000000000  -2.796953093516 AA    0.000000000000   0.000000000000  -5.285475330000 Bohr   0.0
+[INPUT]  3 C      0.000000000000   1.210862108670  -0.709025880831 AA    0.000000000000   2.288197760000  -1.339864730000 Bohr   0.0
+[INPUT]  4 C      0.000000000000  -1.210862108670  -0.709025880831 AA    0.000000000000  -2.288197760000  -1.339864730000 Bohr   0.0
+[INPUT]  5 C      0.000000000000   1.240023461357   2.022381402427 AA    0.000000000000   2.343304730000   3.821746970000 Bohr   0.0
+[INPUT]  6 C      0.000000000000  -1.240023461357   2.022381402427 AA    0.000000000000  -2.343304730000   3.821746970000 Bohr   0.0
+[INPUT]  7 C      0.000000000000   1.199824159981  -2.110708947794 AA    0.000000000000   2.267339060000  -3.988661840000 Bohr   0.0
+[INPUT]  8 C      0.000000000000  -1.199824159981  -2.110708947794 AA    0.000000000000  -2.267339060000  -3.988661840000 Bohr   0.0
+[INPUT]  9 C      0.000000000000   2.389145512310   0.067385198492 AA    0.000000000000   4.514830690000   0.127339570000 Bohr   0.0
+[INPUT] 10 C      0.000000000000  -2.389145512310   0.067385198492 AA    0.000000000000  -4.514830690000   0.127339570000 Bohr   0.0
+[INPUT] 11 N      0.000000000000   2.407574621982   1.391887176564 AA    0.000000000000   4.549656660000   2.630285560000 Bohr   0.0
+[INPUT] 12 N      0.000000000000   0.000000000000  -0.027417433313 AA    0.000000000000   0.000000000000  -0.051811440000 Bohr   0.0
+[INPUT] 13 N      0.000000000000  -2.407574621982   1.391887176564 AA    0.000000000000  -4.549656660000   2.630285560000 Bohr   0.0
+[INPUT] 14 H      0.000000000000   0.000000000000  -3.874861745739 AA    0.000000000000   0.000000000000  -7.322427470000 Bohr   0.0
+[INPUT] 15 H      0.000000000000   1.239974988725   3.100094349041 AA    0.000000000000   2.343213130000   5.858329280000 Bohr   0.0
+[INPUT] 16 H      0.000000000000  -1.239974988725   3.100094349041 AA    0.000000000000  -2.343213130000   5.858329280000 Bohr   0.0
+[INPUT] 17 H      0.000000000000   3.332484151083  -0.454723310870 AA    0.000000000000   6.297482360000  -0.859302520000 Bohr   0.0
+[INPUT] 18 H      0.000000000000  -3.332484151083  -0.454723310870 AA    0.000000000000  -6.297482360000  -0.859302520000 Bohr   0.0
+[INPUT] 19 H      0.000000000000   2.147595742708  -2.619461140772 AA    0.000000000000   4.058367780000  -4.950064150000 Bohr   0.0
+[INPUT] 20 H      0.000000000000  -2.147595742708  -2.619461140772 AA    0.000000000000  -4.058367780000  -4.950064150000 Bohr   0.0
+
+nuclear repulsion = 732.669049684228
+point group symmetry = C2v
+symmetry origin: [ 0.          0.         -0.04081808]
+symmetry axis x: [1. 0. 0.]
+symmetry axis y: [0. 1. 0.]
+symmetry axis z: [0. 0. 1.]
+num. orbitals of irrep A1 = 79
+num. orbitals of irrep A2 = 23
+num. orbitals of irrep B1 = 29
+num. orbitals of irrep B2 = 65
+number of shells = 92
+number of NR pGTOs = 379
+number of NR cGTOs = 196
+basis = 6-31G*
+ecp = {}
+CPU time:    123756.37
+Freeze 0 electrons in irreps []
+    88 free electrons in irreps A1 A2 B1 B2
+
+
+
+
+******** <class 'pyscf.soscf.newton_ah.SecondOrderSymAdaptedROKS'> ********
+method = SecondOrderSymAdaptedROKS
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-09
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/192306.1.lizd20.q/tmpw_a5mizh
+max_memory 4000 MB (current use 5945 MB)
+num. doubly occ = 43  num. singly occ = 2
+XC library pyscf.dft.libxc version 7.0.0
+    S. Lehtola, C. Steigemann, M. J.T. Oliveira, and M. A.L. Marques.,  SoftwareX 7, 1–5 (2018)
+XC functionals = pbe0
+    C. Adamo and V. Barone.,  J. Chem. Phys. 110, 6158 (1999)
+    M. Ernzerhof and G. E. Scuseria.,  J. Chem. Phys. 110, 5029 (1999)
+radial grids: 
+    Treutler-Ahlrichs [JCP 102, 346 (1995); DOI:10.1063/1.469408] (M4) radial grids
+    
+becke partition: Becke, JCP 88, 2547 (1988); DOI:10.1063/1.454033
+pruning grids: <function nwchem_prune at 0x2b112cb359d0>
+grids dens level: 3
+symmetrized grids: True
+atomic radii adjust function: <function treutler_atomic_radii_adjust at 0x2b112c528160>
+User specified grid scheme (99, 590)
+small_rho_cutoff = 1e-07
+******** <class 'pyscf.dft.rks_symm.SymAdaptedROKS'> Newton solver flags ********
+SCF tol = 1e-09
+conv_tol_grad = None
+max. SCF cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/192306.1.lizd20.q/tmpw_a5mizh
+max_cycle_inner = 12
+max_stepsize = 0.05
+ah_start_tol = 1e+09
+ah_level_shift = 0
+ah_conv_tol = 1e-12
+ah_lindep = 1e-14
+ah_start_cycle = 1
+ah_max_cycle = 40
+ah_grad_trust_region = 2.5
+kf_interval = 4
+kf_trust_region = 5
+canonicalization = True
+max_memory 4000 MB (current use 5945 MB)
+Set conv_tol_grad to 3.16228e-05
+tot grids = 637600
+HOMO (B1) = -0.129070591989741  LUMO (A2) = -0.0912129588174513
+Initial guess E= -548.757086439399  |g|= 0.483918
+macro= 0  E= -548.821235932789  delta_E= -0.0641495  |g|= 3.57504e-05  6 KF 23 JK
+macro= 1  E= -548.821235934581  delta_E= -1.79125e-09  |g|= 3.93535e-05  1 KF 4 JK
+macro= 2  E= -548.821235934576  delta_E= 4.54747e-12  |g|= 5.53875e-06  1 KF 2 JK
+Canonicalize SCF orbitals
+macro X = 3  E=-548.821235934576  |g|= 5.53875e-06  total 9 KF 33 JK
+converged SCF energy = -548.821235934576
+rohf_internal: lowest eigs of H = [0.09300564 0.16558289 0.27326864]
+<class 'pyscf.soscf.newton_ah.SecondOrderSymAdaptedROKS'> wavefunction is stable in the internal stability analysis
+method=0 (default) ALDA0, method=1 multicollinear, method=2 collinear
+fglobal 0.0
+50
+Converged  [ True  True  True  True  True  True  True  True  True  True]
+fun_pbe0 0.00
+ground_sym  3
+ 99% OO(ab) 45a -> 44b   -0.99466 
+Excited state 1   -0.89719 eV -548.85420698 Hartree A1
+  
+ 48% OO(ab) 44a -> 44b   -0.69564 
+ 48% OO(ab) 45a -> 45b    0.69564 
+Excited state 2    0.02258 eV -548.82040602 Hartree B2
+  
+ 97% OV(ab) 45a -> 46b   -0.98519 
+Excited state 3    1.57818 eV -548.76323902 Hartree A1
+  
+ 97% OV(ab) 45a -> 47b   -0.98322 
+Excited state 4    1.78944 eV -548.75547519 Hartree B2
+  
+ 98% OO(ab) 44a -> 45b    0.98927 
+Excited state 5    2.03775 eV -548.74634983 Hartree A1
+  
+  1% CV(ab) 42a -> 47b    0.11130 
+ 98% CO(ab) 43a -> 44b   -0.98851 
+Excited state 6    2.64322 eV -548.72409924 Hartree A2
+  
+ 16% CO(ab) 40a -> 44b    0.40446 
+ 81% OV(ab) 44a -> 46b    0.89880 
+Excited state 7    2.70484 eV -548.72183476 Hartree B2
+  
+ 33% CO(ab) 41a -> 44b   -0.57793 
+ 62% OV(ab) 44a -> 47b   -0.78917 
+  2% OV(ab) 45a -> 48b    0.12388 
+Excited state 8    2.78586 eV -548.71885756 Hartree A1
+  
+  3% CV(ab) 43a -> 47b    0.17169 
+ 96% CO(ab) 42a -> 44b   -0.97742 
+Excited state 9    3.23843 eV -548.70222572 Hartree B1
+  
+  8% CV(ab) 42a -> 46b    0.27487 
+  2% CV(ab) 42a -> 48b    0.13604 
+ 88% CO(ab) 43a -> 45b    0.93736 
+Excited state 10    3.73734 eV -548.68389134 Hartree B1
+  
+excited energy  [-0.89718781  0.02258318  1.57817638  1.78944105  2.03775462  2.6432241
+  2.70484371  2.78585743  3.23843288  3.73733669]
+method=0 (default) ALDA0, method=1 multicollinear, method=2 collinear
+fglobal 0.0475
+50
+Converged  [ True  True  True  True  True  True  True  True  True  True]
+fun_pbe0 0.10
+ground_sym  3
+ 99% OO(ab) 45a -> 44b   -0.99409 
+Excited state 1   -0.90649 eV -548.85454894 Hartree A1
+  
+ 48% OO(ab) 44a -> 44b    0.69442 
+ 48% OO(ab) 45a -> 45b   -0.69442 
+Excited state 2   -0.00781 eV -548.82152277 Hartree B2
+  
+  1% CO(ab) 41a -> 44b    0.10092 
+ 97% OV(ab) 45a -> 46b   -0.98337 
+Excited state 3    1.63556 eV -548.76113033 Hartree A1
+  
+ 96% OV(ab) 45a -> 47b   -0.98166 
+Excited state 4    1.84349 eV -548.75348903 Hartree B2
+  
+ 98% OO(ab) 44a -> 45b    0.98783 
+Excited state 5    2.02842 eV -548.74669299 Hartree A1
+  
+  1% CV(ab) 42a -> 47b    0.11412 
+ 98% CO(ab) 43a -> 44b   -0.98801 
+Excited state 6    2.64539 eV -548.72401967 Hartree A2
+  
+ 16% CO(ab) 40a -> 44b    0.39910 
+ 81% OV(ab) 44a -> 46b    0.89856 
+Excited state 7    2.73410 eV -548.72075947 Hartree B2
+  
+ 32% CO(ab) 41a -> 44b    0.56850 
+ 63% OV(ab) 44a -> 47b    0.79223 
+  2% OV(ab) 45a -> 48b   -0.13349 
+Excited state 8    2.81509 eV -548.71778340 Hartree A1
+  
+  3% CV(ab) 43a -> 47b   -0.17491 
+ 95% CO(ab) 42a -> 44b    0.97656 
+Excited state 9    3.24034 eV -548.70215560 Hartree B1
+  
+  8% CV(ab) 42a -> 46b   -0.27401 
+  2% CV(ab) 42a -> 48b   -0.13724 
+ 88% CO(ab) 43a -> 45b   -0.93712 
+Excited state 10    3.72693 eV -548.68427393 Hartree B1
+  
+excited energy  [-0.90649292 -0.00780507  1.63555665  1.84348721  2.02841666  2.64538921
+  2.73410379  2.81508666  3.24034093  3.72692596]
+method=0 (default) ALDA0, method=1 multicollinear, method=2 collinear
+fglobal 0.095
+50
+Converged  [ True  True  True  True  True  True  True  True  True  True]
+fun_pbe0 0.20
+ground_sym  3
+ 99% OO(ab) 45a -> 44b   -0.99349 
+Excited state 1   -0.91644 eV -548.85491460 Hartree A1
+  
+  1% CV(ab) 40a -> 46b    0.10372 
+ 48% OO(ab) 44a -> 44b    0.69319 
+ 48% OO(ab) 45a -> 45b   -0.69319 
+Excited state 2   -0.03980 eV -548.82269863 Hartree B2
+  
+  1% CO(ab) 41a -> 44b    0.11001 
+ 96% OV(ab) 45a -> 46b   -0.98064 
+Excited state 3    1.69145 eV -548.75907629 Hartree A1
+  
+  1% CO(ab) 40a -> 44b    0.11065 
+ 96% OV(ab) 45a -> 47b    0.97915 
+Excited state 4    1.89564 eV -548.75157258 Hartree B2
+  
+ 97% OO(ab) 44a -> 45b   -0.98592 
+Excited state 5    2.01864 eV -548.74705226 Hartree A1
+  
+  1% CV(ab) 42a -> 47b    0.11685 
+ 98% CO(ab) 43a -> 44b   -0.98751 
+Excited state 6    2.64743 eV -548.72394485 Hartree A2
+  
+ 15% CO(ab) 40a -> 44b    0.39313 
+ 81% OV(ab) 44a -> 46b    0.89738 
+Excited state 7    2.76415 eV -548.71965513 Hartree B2
+  
+ 31% CO(ab) 41a -> 44b   -0.55865 
+ 63% OV(ab) 44a -> 47b   -0.79472 
+  2% OV(ab) 45a -> 48b    0.14332 
+Excited state 8    2.84448 eV -548.71670326 Hartree A1
+  
+  3% CV(ab) 43a -> 47b   -0.17797 
+ 95% CO(ab) 42a -> 44b    0.97569 
+Excited state 9    3.24213 eV -548.70209001 Hartree B1
+  
+  7% CV(ab) 42a -> 46b    0.27316 
+  2% CV(ab) 42a -> 48b    0.13839 
+ 88% CO(ab) 43a -> 45b    0.93689 
+Excited state 10    3.71643 eV -548.68465950 Hartree B1
+  
+excited energy  [-0.91644314 -0.03980184  1.69145015  1.8956363   2.01864055  2.64742511
+  2.7641545   2.84447888  3.24212561  3.71643392]
+method=0 (default) ALDA0, method=1 multicollinear, method=2 collinear
+fglobal 0.14250000000000002
+50
+Converged  [ True  True  True  True  True  True  True  True  True  True]
+fun_pbe0 0.30
+ground_sym  3
+ 99% OO(ab) 45a -> 44b   -0.99286 
+Excited state 1   -0.92702 eV -548.85530333 Hartree A1
+  
+  1% CV(ab) 40a -> 46b    0.10895 
+  1% CV(ab) 41a -> 47b    0.10282 
+ 48% OO(ab) 44a -> 44b    0.69194 
+ 48% OO(ab) 45a -> 45b   -0.69194 
+Excited state 2   -0.07332 eV -548.82393030 Hartree B2
+  
+  1% CO(ab) 41a -> 44b   -0.11946 
+ 95% OV(ab) 45a -> 46b    0.97649 
+Excited state 3    1.74570 eV -548.75708248 Hartree A1
+  
+  2% CO(ab) 40a -> 44b   -0.12268 
+ 95% OV(ab) 45a -> 47b   -0.97557 
+Excited state 4    1.94576 eV -548.74973046 Hartree B2
+  
+ 97% OO(ab) 44a -> 45b    0.98307 
+Excited state 5    2.00855 eV -548.74742319 Hartree A1
+  
+  1% CV(ab) 42a -> 47b   -0.11949 
+ 97% CO(ab) 43a -> 44b    0.98701 
+Excited state 6    2.64934 eV -548.72387465 Hartree A2
+  
+ 15% CO(ab) 40a -> 44b   -0.38636 
+ 80% OV(ab) 44a -> 46b   -0.89522 
+  1% OV(ab) 45a -> 47b    0.11216 
+Excited state 7    2.79512 eV -548.71851711 Hartree B2
+  
+ 30% CO(ab) 41a -> 44b   -0.54831 
+ 63% OV(ab) 44a -> 47b   -0.79660 
+  1% OV(ab) 45a -> 46b   -0.10549 
+  2% OV(ab) 45a -> 48b    0.15336 
+Excited state 8    2.87410 eV -548.71561476 Hartree A1
+  
+  3% CV(ab) 43a -> 47b    0.18090 
+ 95% CO(ab) 42a -> 44b   -0.97483 
+Excited state 9    3.24379 eV -548.70202883 Hartree B1
+  
+  7% CV(ab) 42a -> 46b   -0.27235 
+  2% CV(ab) 42a -> 48b   -0.13951 
+ 88% CO(ab) 43a -> 45b   -0.93662 
+Excited state 10    3.70586 eV -548.68504800 Hartree B1
+  
+excited energy  [-0.92702111 -0.07331745  1.74570435  1.94576299  2.00854688  2.64933537
+  2.79512157  2.87409853  3.24379054  3.70586232]
+method=0 (default) ALDA0, method=1 multicollinear, method=2 collinear
+fglobal 0.19
+50
+Converged  [ True  True  True  True  True  True  True  True  True  True]
+fun_pbe0 0.40
+ground_sym  3
+ 98% OO(ab) 45a -> 44b   -0.99221 
+Excited state 1   -0.93821 eV -548.85571454 Hartree A1
+  
+  1% CV(ab) 40a -> 46b    0.11390 
+  1% CV(ab) 41a -> 47b    0.10742 
+ 48% OO(ab) 44a -> 44b    0.69069 
+ 48% OO(ab) 45a -> 45b   -0.69069 
+Excited state 2   -0.10827 eV -548.82521472 Hartree B2
+  
+  2% CO(ab) 41a -> 44b   -0.12920 
+ 94% OV(ab) 45a -> 46b    0.96961 
+  2% OO(ab) 44a -> 45b    0.13505 
+Excited state 3    1.79806 eV -548.75515845 Hartree A1
+  
+  2% CO(ab) 40a -> 44b   -0.13495 
+  1% OV(ab) 44a -> 46b   -0.10923 
+ 94% OV(ab) 45a -> 47b   -0.97079 
+Excited state 4    1.99375 eV -548.74796711 Hartree B2
+  
+  2% OV(ab) 45a -> 46b    0.13076 
+ 96% OO(ab) 44a -> 45b   -0.97798 
+Excited state 5    1.99836 eV -548.74779761 Hartree A1
+  
+  1% CV(ab) 42a -> 47b   -0.12206 
+ 97% CO(ab) 43a -> 44b    0.98652 
+Excited state 6    2.65112 eV -548.72380894 Hartree A2
+  
+ 14% CO(ab) 40a -> 44b   -0.37876 
+ 80% OV(ab) 44a -> 46b   -0.89196 
+  2% OV(ab) 45a -> 47b    0.14420 
+Excited state 7    2.82713 eV -548.71734098 Hartree B2
+  
+ 29% CO(ab) 41a -> 44b   -0.53743 
+ 64% OV(ab) 44a -> 47b   -0.79783 
+  2% OV(ab) 45a -> 46b   -0.12741 
+  3% OV(ab) 45a -> 48b    0.16359 
+Excited state 8    2.90401 eV -548.71451551 Hartree A1
+  
+  3% CV(ab) 43a -> 47b    0.18372 
+ 95% CO(ab) 42a -> 44b   -0.97396 
+Excited state 9    3.24534 eV -548.70197192 Hartree B1
+  
+  7% CV(ab) 42a -> 46b   -0.27158 
+  2% CV(ab) 42a -> 48b   -0.14061 
+ 88% CO(ab) 43a -> 45b   -0.93634 
+Excited state 10    3.69521 eV -548.68543936 Hartree B1
+  
+excited energy  [-0.9382105  -0.10826825  1.79805988  1.99374632  1.99835862  2.65112337
+  2.82712554  2.90401044  3.24533902  3.69521286]
+method=0 (default) ALDA0, method=1 multicollinear, method=2 collinear
+fglobal 0.2375
+50
+Converged  [ True  True  True  True  True  True  True  True  True  True]
+fun_pbe0 0.50
+ground_sym  3
+ 98% OO(ab) 45a -> 44b   -0.99152 
+Excited state 1   -0.95000 eV -548.85614764 Hartree A1
+  
+  1% CV(ab) 40a -> 46b    0.11859 
+  1% CV(ab) 41a -> 47b    0.11177 
+ 48% OO(ab) 44a -> 44b    0.68944 
+ 48% OO(ab) 45a -> 45b   -0.68944 
+Excited state 2   -0.14458 eV -548.82654901 Hartree B2
+  
+  2% CO(ab) 41a -> 44b    0.13889 
+ 91% OV(ab) 45a -> 46b   -0.95554 
+  4% OO(ab) 44a -> 45b   -0.19901 
+Excited state 3    1.84794 eV -548.75332550 Hartree A1
+  
+  4% OV(ab) 45a -> 46b   -0.19298 
+ 93% OO(ab) 44a -> 45b    0.96609 
+Excited state 4    1.98862 eV -548.74815565 Hartree A1
+  
+  2% CO(ab) 40a -> 44b   -0.14731 
+  2% OV(ab) 44a -> 46b   -0.14044 
+ 93% OV(ab) 45a -> 47b   -0.96473 
+Excited state 5    2.03947 eV -548.74628662 Hartree B2
+  
+  2% CV(ab) 42a -> 47b   -0.12455 
+ 97% CO(ab) 43a -> 44b    0.98603 
+Excited state 6    2.65279 eV -548.72374761 Hartree A2
+  
+ 14% CO(ab) 40a -> 44b    0.37029 
+ 79% OV(ab) 44a -> 46b    0.88749 
+  3% OV(ab) 45a -> 47b   -0.17718 
+Excited state 7    2.86028 eV -548.71612270 Hartree B2
+  
+ 28% CO(ab) 41a -> 44b   -0.52595 
+ 64% OV(ab) 44a -> 47b   -0.79837 
+  2% OV(ab) 45a -> 46b   -0.15015 
+  3% OV(ab) 45a -> 48b    0.17400 
+Excited state 8    2.93428 eV -548.71340317 Hartree A1
+  
+  3% CV(ab) 43a -> 47b    0.18644 
+ 95% CO(ab) 42a -> 44b   -0.97309 
+  1% CO(ab) 43a -> 45b   -0.10119 
+Excited state 9    3.24677 eV -548.70191918 Hartree B1
+  
+  7% CV(ab) 42a -> 46b   -0.27085 
+  2% CV(ab) 42a -> 48b   -0.14168 
+ 88% CO(ab) 43a -> 45b   -0.93603 
+Excited state 10    3.68449 eV -548.68583352 Hartree B1
+  
+excited energy  [-0.94999586 -0.14457624  1.84793691  1.98861568  2.03947479  2.65279232
+  2.86027669  2.93427901  3.24677406  3.68448723]
+#INFO: **** input file is /export/home/lizd20/zhaohw/tddft/ten_mols/find_gx/mol7/mc_mol7.py ****
+# source /export/home/lizd20/clf/clf_jax/bin/activate
+
+from pyscf import gto, dft, scf, ao2mo, lib, tddft,fci
+from pyscf.fci import addons
+import numpy as np
+from pyscf.dft import numint
+import scipy
+from functools import reduce
+import h5py
+import pyscf.scf.stability as stab_mod
+
+import sys
+sys.path.append('/export/home/lizd20/zhaohw/tddft/')
+from SF_XTDA import SA_SF_TDA
+
+#angles = np.arange(0,181,5)
+nstates = 10
+bas = '6-31G*'
+funs = ['b3lyp','pbe0','bhandhlyp']
+#funs = ['bhandhlyp']
+def update_h5(name,count,excited,index_gx):
+    fname = name + '.h5'
+    f = h5py.File(fname,'a')
+    f['excited'][count,index_gx] = np.array(excited)
+    f.close()
+    return None 
+def write_h5(name,funs,nstates):
+    fname = name + '.h5'
+    len_r = len(funs)
+    f = h5py.File(fname,'w')
+    f['functional'] = funs
+    f['excited'] = np.zeros((len_r,6,nstates))
+    f.close()
+    return None
+
+name = 'mc_gx'
+write_h5(name,funs,nstates)
+gx = np.arange(6)*0.1
+
+for count,fun in enumerate(funs):    
+    mol = gto.M(                 
+          atom = '''
+ C 0.00000000 -0.00000000  2.57288762
+ C 0.00000000  0.00000000 -5.28547533
+ C 0.00000000  2.28819776 -1.33986473
+ C 0.00000000 -2.28819776 -1.33986473
+ C 0.00000000  2.34330473  3.82174697
+ C 0.00000000 -2.34330473  3.82174697
+ C 0.00000000  2.26733906 -3.98866184
+ C 0.00000000 -2.26733906 -3.98866184
+ C 0.00000000  4.51483069  0.12733957
+ C 0.00000000 -4.51483069  0.12733957
+ N 0.00000000  4.54965666  2.63028556
+ N 0.00000000 -0.00000000 -0.05181144
+ N 0.00000000 -4.54965666  2.63028556
+ H 0.00000000  0.00000000 -7.32242747
+ H 0.00000000  2.34321313  5.85832928
+ H 0.00000000 -2.34321313  5.85832928
+ H 0.00000000  6.29748236 -0.85930252
+ H 0.00000000 -6.29748236 -0.85930252
+ H 0.00000000  4.05836778 -4.95006415
+ H 0.00000000 -4.05836778 -4.95006415
+''',
+      basis = bas,
+      charge = 0,
+      spin = 2, 
+      verbose = 4,
+      unit = 'B',
+      symmetry=True,
+    )    
+
+    if fun == 'hf':
+        mf = scf.ROHF(mol)
+    else:
+        mf = dft.ROKS(mol)
+        mf.xc = fun
+    #mf.grids.level = 6
+    #mf.irrep_nelec = {'A1': (4,2), 'B1':(1,1), 'B2':(1,1)}
+    mf.grids.atom_grid = (99,590)
+    mf = mf.newton()
+    mf.kernel()
+    assert mf.converged
+    mo, _, stable, _ = mf.stability(return_status=True)
+    if stable is False:
+        dm = mf.make_rdm1(mo, mf.mo_occ)
+        mf.kernel(dm0=dm)
+        mo, _, stable, _ = mf.stability(return_status=True)
+        assert stable
+    if fun == 'b3lyp':
+        hyb = 0.2
+    elif fun == 'pbe0':
+        hyb = 0.25
+    elif fun == 'bhandhlyp':
+        hyb = 0.5
+    fglobal = (1-0.3)*hyb+0.3
+    for index_gx,gx_i in enumerate(gx):
+        sf_tda = SA_SF_TDA(mf,SA=3,method=1)
+        fx = fglobal * gx_i
+        e0, values = sf_tda.kernel(nstates=nstates,remove=True,fglobal=fx)
+        update_h5(name,count,e0,index_gx)
+        print(f'fun_{fun} {gx_i:3.2f}')
+        _ = sf_tda.analyse()
+        print('excited energy ',e0)
+
+print('Done')
+#INFO: ******************** input file end ********************
+
+
+System: uname_result(system='Linux', node='node22', release='3.10.0-1160.el7.x86_64', version='#1 SMP Mon Oct 19 16:18:59 UTC 2020', machine='x86_64')  Threads 48
+Python 3.9.0 (default, Nov 15 2020, 14:28:56) 
+[GCC 7.3.0]
+numpy 1.26.4  scipy 1.13.1  h5py 3.11.0
+Date: Wed Dec  3 07:51:54 2025
+PySCF version 2.11.0
+PySCF path  /export/home/lizd20/anaconda3/envs/zhw/lib/python3.9/site-packages/pyscf
+
+[CONFIG] conf_file None
+[INPUT] verbose = 4
+[INPUT] num. atoms = 20
+[INPUT] num. electrons = 88
+[INPUT] charge = 0
+[INPUT] spin (= nelec alpha-beta = 2S) = 2
+[INPUT] symmetry True subgroup None
+[INPUT] Mole.unit = B
+[INPUT] Symbol           X                Y                Z      unit          X                Y                Z       unit  Magmom
+[INPUT]  1 C      0.000000000000   0.000000000000   1.361513494762 AA    0.000000000000   0.000000000000   2.572887620000 Bohr   0.0
+[INPUT]  2 C      0.000000000000   0.000000000000  -2.796953093516 AA    0.000000000000   0.000000000000  -5.285475330000 Bohr   0.0
+[INPUT]  3 C      0.000000000000   1.210862108670  -0.709025880831 AA    0.000000000000   2.288197760000  -1.339864730000 Bohr   0.0
+[INPUT]  4 C      0.000000000000  -1.210862108670  -0.709025880831 AA    0.000000000000  -2.288197760000  -1.339864730000 Bohr   0.0
+[INPUT]  5 C      0.000000000000   1.240023461357   2.022381402427 AA    0.000000000000   2.343304730000   3.821746970000 Bohr   0.0
+[INPUT]  6 C      0.000000000000  -1.240023461357   2.022381402427 AA    0.000000000000  -2.343304730000   3.821746970000 Bohr   0.0
+[INPUT]  7 C      0.000000000000   1.199824159981  -2.110708947794 AA    0.000000000000   2.267339060000  -3.988661840000 Bohr   0.0
+[INPUT]  8 C      0.000000000000  -1.199824159981  -2.110708947794 AA    0.000000000000  -2.267339060000  -3.988661840000 Bohr   0.0
+[INPUT]  9 C      0.000000000000   2.389145512310   0.067385198492 AA    0.000000000000   4.514830690000   0.127339570000 Bohr   0.0
+[INPUT] 10 C      0.000000000000  -2.389145512310   0.067385198492 AA    0.000000000000  -4.514830690000   0.127339570000 Bohr   0.0
+[INPUT] 11 N      0.000000000000   2.407574621982   1.391887176564 AA    0.000000000000   4.549656660000   2.630285560000 Bohr   0.0
+[INPUT] 12 N      0.000000000000   0.000000000000  -0.027417433313 AA    0.000000000000   0.000000000000  -0.051811440000 Bohr   0.0
+[INPUT] 13 N      0.000000000000  -2.407574621982   1.391887176564 AA    0.000000000000  -4.549656660000   2.630285560000 Bohr   0.0
+[INPUT] 14 H      0.000000000000   0.000000000000  -3.874861745739 AA    0.000000000000   0.000000000000  -7.322427470000 Bohr   0.0
+[INPUT] 15 H      0.000000000000   1.239974988725   3.100094349041 AA    0.000000000000   2.343213130000   5.858329280000 Bohr   0.0
+[INPUT] 16 H      0.000000000000  -1.239974988725   3.100094349041 AA    0.000000000000  -2.343213130000   5.858329280000 Bohr   0.0
+[INPUT] 17 H      0.000000000000   3.332484151083  -0.454723310870 AA    0.000000000000   6.297482360000  -0.859302520000 Bohr   0.0
+[INPUT] 18 H      0.000000000000  -3.332484151083  -0.454723310870 AA    0.000000000000  -6.297482360000  -0.859302520000 Bohr   0.0
+[INPUT] 19 H      0.000000000000   2.147595742708  -2.619461140772 AA    0.000000000000   4.058367780000  -4.950064150000 Bohr   0.0
+[INPUT] 20 H      0.000000000000  -2.147595742708  -2.619461140772 AA    0.000000000000  -4.058367780000  -4.950064150000 Bohr   0.0
+
+nuclear repulsion = 732.669049684228
+point group symmetry = C2v
+symmetry origin: [ 0.          0.         -0.04081808]
+symmetry axis x: [1. 0. 0.]
+symmetry axis y: [0. 1. 0.]
+symmetry axis z: [0. 0. 1.]
+num. orbitals of irrep A1 = 79
+num. orbitals of irrep A2 = 23
+num. orbitals of irrep B1 = 29
+num. orbitals of irrep B2 = 65
+number of shells = 92
+number of NR pGTOs = 379
+number of NR cGTOs = 196
+basis = 6-31G*
+ecp = {}
+CPU time:    632817.02
+Freeze 0 electrons in irreps []
+    88 free electrons in irreps A1 A2 B1 B2
+
+
+
+
+******** <class 'pyscf.soscf.newton_ah.SecondOrderSymAdaptedROKS'> ********
+method = SecondOrderSymAdaptedROKS
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-09
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/192306.1.lizd20.q/tmpyc74m2ny
+max_memory 4000 MB (current use 6184 MB)
+num. doubly occ = 43  num. singly occ = 2
+XC library pyscf.dft.libxc version 7.0.0
+    S. Lehtola, C. Steigemann, M. J.T. Oliveira, and M. A.L. Marques.,  SoftwareX 7, 1–5 (2018)
+XC functionals = bhandhlyp
+    A. D. Becke.,  J. Chem. Phys. 98, 1372 (1993)
+    Defined through Gaussian implementation.
+radial grids: 
+    Treutler-Ahlrichs [JCP 102, 346 (1995); DOI:10.1063/1.469408] (M4) radial grids
+    
+becke partition: Becke, JCP 88, 2547 (1988); DOI:10.1063/1.454033
+pruning grids: <function nwchem_prune at 0x2b112cb359d0>
+grids dens level: 3
+symmetrized grids: True
+atomic radii adjust function: <function treutler_atomic_radii_adjust at 0x2b112c528160>
+User specified grid scheme (99, 590)
+small_rho_cutoff = 1e-07
+******** <class 'pyscf.dft.rks_symm.SymAdaptedROKS'> Newton solver flags ********
+SCF tol = 1e-09
+conv_tol_grad = None
+max. SCF cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/192306.1.lizd20.q/tmpyc74m2ny
+max_cycle_inner = 12
+max_stepsize = 0.05
+ah_start_tol = 1e+09
+ah_level_shift = 0
+ah_conv_tol = 1e-12
+ah_lindep = 1e-14
+ah_start_cycle = 1
+ah_max_cycle = 40
+ah_grad_trust_region = 2.5
+kf_interval = 4
+kf_trust_region = 5
+canonicalization = True
+max_memory 4000 MB (current use 6184 MB)
+Set conv_tol_grad to 3.16228e-05
+tot grids = 637600
+HOMO (B1) = -0.103959773042686  LUMO (A2) = -0.0594185155167218
+Initial guess E= -549.029233162237  |g|= 0.527713
+macro= 0  E= -549.113478116402  delta_E= -0.084245  |g|= 3.05007e-05  6 KF 23 JK
+macro= 1  E= -549.113478116405  delta_E= -3.63798e-12  |g|= 9.12983e-06  1 KF 2 JK
+Canonicalize SCF orbitals
+macro X = 2  E=-549.113478116405  |g|= 9.12983e-06  total 8 KF 28 JK
+converged SCF energy = -549.113478116405
+rohf_internal: lowest eigs of H = [0.08099571 0.16158521 0.26315474]
+<class 'pyscf.soscf.newton_ah.SecondOrderSymAdaptedROKS'> wavefunction is stable in the internal stability analysis
+method=0 (default) ALDA0, method=1 multicollinear, method=2 collinear
+fglobal 0.0
+50
+Converged  [ True  True  True  True  True  True  True  True  True  True]
+fun_bhandhlyp 0.00
+ground_sym  3
+ 97% OO(ab) 45a -> 44b   -0.98722 
+Excited state 1   -0.78877 eV -549.14246502 Hartree A1
+  
+  2% CV(ab) 41a -> 46b    0.12275 
+  1% CV(ab) 42a -> 47b    0.11224 
+ 47% OO(ab) 44a -> 44b    0.68641 
+ 47% OO(ab) 45a -> 45b   -0.68641 
+Excited state 2   -0.09380 eV -549.11692506 Hartree B2
+  
+  1% CO(ab) 41a -> 45b    0.10537 
+  2% CO(ab) 42a -> 44b    0.15605 
+ 86% OV(ab) 45a -> 46b   -0.92884 
+  8% OO(ab) 44a -> 45b   -0.28049 
+Excited state 3    1.84521 eV -549.04566802 Hartree A1
+  
+  3% CO(ab) 41a -> 44b   -0.16312 
+ 92% OV(ab) 45a -> 47b   -0.96012 
+Excited state 4    2.09960 eV -549.03631905 Hartree B2
+  
+  1% OV(ab) 44a -> 47b   -0.10328 
+  7% OV(ab) 45a -> 46b    0.27028 
+ 88% OO(ab) 44a -> 45b   -0.93874 
+Excited state 5    2.13112 eV -549.03516103 Hartree A1
+  
+ 18% CO(ab) 41a -> 44b    0.42681 
+ 76% OV(ab) 44a -> 46b    0.87067 
+  1% OV(ab) 45a -> 47b   -0.10555 
+Excited state 6    2.81562 eV -549.01000588 Hartree B2
+  
+ 31% CO(ab) 42a -> 44b   -0.56015 
+ 61% OV(ab) 44a -> 47b   -0.77933 
+  2% OV(ab) 45a -> 49b   -0.14358 
+Excited state 7    2.89125 eV -549.00722664 Hartree A1
+  
+  3% CV(ab) 40a -> 47b    0.18567 
+  3% CV(ab) 43a -> 46b    0.16716 
+ 93% CO(ab) 43a -> 44b   -0.96320 
+Excited state 8    3.55474 eV -548.98284400 Hartree A2
+  
+  1% CV(ab) 38a -> 46b   -0.11362 
+  3% CO(ab) 41a -> 45b   -0.17846 
+ 59% CO(ab) 42a -> 44b    0.77080 
+ 32% OV(ab) 44a -> 47b   -0.56384 
+Excited state 9    4.51963 eV -548.94738488 Hartree A1
+  
+  2% CV(ab) 41a -> 46b   -0.13746 
+  2% CO(ab) 37a -> 44b   -0.13502 
+ 57% CO(ab) 41a -> 44b   -0.75539 
+ 13% CO(ab) 42a -> 45b   -0.36687 
+ 17% OV(ab) 44a -> 46b    0.41258 
+  1% OV(ab) 44a -> 49b   -0.11455 
+  4% OV(ab) 45a -> 50b   -0.19615 
+Excited state 10    4.58726 eV -548.94489933 Hartree B2
+  
+excited energy  [-0.78877373 -0.09379605  1.84520668  2.09960494  2.1311164   2.81562299
+  2.89124979  3.55473531  4.51962688  4.58726231]
+method=0 (default) ALDA0, method=1 multicollinear, method=2 collinear
+fglobal 0.06499999999999999
+50
+Converged  [ True  True  True  True  True  True  True  True  True  True]
+fun_bhandhlyp 0.10
+ground_sym  3
+ 97% OO(ab) 45a -> 44b   -0.98621 
+Excited state 1   -0.80688 eV -549.14313047 Hartree A1
+  
+  2% CV(ab) 41a -> 46b   -0.12868 
+  1% CV(ab) 42a -> 47b   -0.11770 
+ 47% OO(ab) 44a -> 44b   -0.68472 
+ 47% OO(ab) 45a -> 45b    0.68472 
+Excited state 2   -0.14568 eV -549.11883177 Hartree B2
+  
+  1% CO(ab) 41a -> 45b    0.10312 
+  3% CO(ab) 42a -> 44b    0.16659 
+ 79% OV(ab) 45a -> 46b   -0.88877 
+ 15% OO(ab) 44a -> 45b   -0.38659 
+Excited state 3    1.90631 eV -549.04342254 Hartree A1
+  
+  1% OV(ab) 44a -> 47b    0.11384 
+ 14% OV(ab) 45a -> 46b   -0.37184 
+ 81% OO(ab) 44a -> 45b    0.89879 
+Excited state 4    2.12374 eV -549.03543205 Hartree A1
+  
+  3% CO(ab) 41a -> 44b   -0.18399 
+ 91% OV(ab) 45a -> 47b   -0.95282 
+Excited state 5    2.16178 eV -549.03403408 Hartree B2
+  
+  1% CV(ab) 42a -> 50b    0.10121 
+ 17% CO(ab) 41a -> 44b    0.41492 
+ 75% OV(ab) 44a -> 46b    0.86694 
+  2% OV(ab) 45a -> 47b   -0.15299 
+Excited state 6    2.85788 eV -549.00845281 Hartree B2
+  
+ 30% CO(ab) 42a -> 44b    0.54727 
+ 61% OV(ab) 44a -> 47b    0.78065 
+  2% OV(ab) 45a -> 46b    0.12510 
+  2% OV(ab) 45a -> 49b    0.15419 
+Excited state 7    2.93095 eV -549.00576780 Hartree A1
+  
+  4% CV(ab) 40a -> 47b    0.18762 
+  3% CV(ab) 43a -> 46b    0.16677 
+ 93% CO(ab) 43a -> 44b   -0.96276 
+Excited state 8    3.55380 eV -548.98287851 Hartree A2
+  
+  1% CV(ab) 38a -> 46b    0.11823 
+  2% CO(ab) 39a -> 44b   -0.12353 
+  2% CO(ab) 41a -> 45b    0.14651 
+ 61% CO(ab) 42a -> 44b   -0.77911 
+ 30% OV(ab) 44a -> 47b    0.54625 
+Excited state 9    4.57541 eV -548.94533488 Hartree A1
+  
+  2% CV(ab) 40a -> 50b    0.13098 
+  2% CV(ab) 40a -> 58b   -0.12810 
+ 25% CV(ab) 43a -> 46b   -0.50235 
+  6% CV(ab) 43a -> 49b    0.25353 
+ 62% CO(ab) 40a -> 45b   -0.78726 
+Excited state 10    4.63433 eV -548.94316961 Hartree A2
+  
+excited energy  [-0.80688149 -0.14568031  1.90630931  2.12374166  2.16178224  2.85788395
+  2.93094691  3.55379606  4.57541036  4.63433025]
+method=0 (default) ALDA0, method=1 multicollinear, method=2 collinear
+fglobal 0.12999999999999998
+50
+Converged  [ True  True  True  True  True  True  True  True  True  True]
+fun_bhandhlyp 0.20
+ground_sym  3
+ 97% OO(ab) 45a -> 44b   -0.98516 
+Excited state 1   -0.82592 eV -549.14383029 Hartree A1
+  
+  2% CV(ab) 41a -> 46b   -0.13419 
+  2% CV(ab) 42a -> 47b   -0.12277 
+ 47% OO(ab) 44a -> 44b   -0.68304 
+ 47% OO(ab) 45a -> 45b    0.68304 
+Excited state 2   -0.19969 eV -549.12081669 Hartree B2
+  
+  3% CO(ab) 42a -> 44b   -0.16792 
+ 64% OV(ab) 45a -> 46b    0.79856 
+ 30% OO(ab) 44a -> 45b    0.55044 
+Excited state 3    1.95526 eV -549.04162354 Hartree A1
+  
+  2% OV(ab) 44a -> 47b    0.13046 
+ 28% OV(ab) 45a -> 46b   -0.52950 
+ 65% OO(ab) 44a -> 45b    0.80725 
+Excited state 4    2.12513 eV -549.03538088 Hartree A1
+  
+  4% CO(ab) 41a -> 44b    0.20506 
+  2% OV(ab) 44a -> 46b    0.14376 
+ 89% OV(ab) 45a -> 47b    0.94265 
+Excited state 5    2.21967 eV -549.03190674 Hartree B2
+  
+  1% CV(ab) 42a -> 50b    0.10590 
+ 16% CO(ab) 41a -> 44b    0.40124 
+ 74% OV(ab) 44a -> 46b    0.86057 
+  4% OV(ab) 45a -> 47b   -0.20217 
+Excited state 6    2.90285 eV -549.00680023 Hartree B2
+  
+ 28% CO(ab) 42a -> 44b    0.53338 
+ 61% OV(ab) 44a -> 47b    0.78075 
+  2% OV(ab) 45a -> 46b    0.15689 
+  3% OV(ab) 45a -> 49b    0.16492 
+Excited state 7    2.97166 eV -549.00427171 Hartree A1
+  
+  4% CV(ab) 40a -> 47b    0.18948 
+  3% CV(ab) 43a -> 46b    0.16640 
+ 93% CO(ab) 43a -> 44b   -0.96232 
+Excited state 8    3.55274 eV -548.98291744 Hartree A2
+  
+  1% CV(ab) 38a -> 46b    0.12139 
+  2% CO(ab) 39a -> 44b   -0.15034 
+  1% CO(ab) 41a -> 45b    0.11069 
+ 61% CO(ab) 42a -> 44b   -0.78037 
+ 27% OV(ab) 44a -> 47b    0.52234 
+  2% OV(ab) 45a -> 49b    0.14544 
+Excited state 9    4.62070 eV -548.94367042 Hartree A1
+  
+  2% CV(ab) 40a -> 50b    0.12989 
+  2% CV(ab) 40a -> 58b   -0.12818 
+ 24% CV(ab) 43a -> 46b   -0.49247 
+  6% CV(ab) 43a -> 49b    0.25257 
+ 63% CO(ab) 40a -> 45b   -0.79397 
+Excited state 10    4.62739 eV -548.94342472 Hartree A2
+  
+excited energy  [-0.82592481 -0.19969286  1.9552626   2.12513405  2.21967017  2.90285303
+  2.97165757  3.55273693  4.62070273  4.62738856]
+method=0 (default) ALDA0, method=1 multicollinear, method=2 collinear
+fglobal 0.195
+50
+Converged  [ True  True  True  True  True  True  True  True  True  True]
+fun_bhandhlyp 0.30
+ground_sym  3
+ 97% OO(ab) 45a -> 44b   -0.98408 
+Excited state 1   -0.84587 eV -549.14456340 Hartree A1
+  
+  2% CV(ab) 41a -> 46b   -0.13931 
+  2% CV(ab) 42a -> 47b   -0.12749 
+ 46% OO(ab) 44a -> 44b   -0.68139 
+ 46% OO(ab) 45a -> 45b    0.68139 
+Excited state 2   -0.25568 eV -549.12287434 Hartree B2
+  
+  2% CO(ab) 42a -> 44b    0.15093 
+ 40% OV(ab) 45a -> 46b   -0.63341 
+ 55% OO(ab) 44a -> 45b   -0.73845 
+Excited state 3    1.98393 eV -549.04057010 Hartree A1
+  
+  1% CO(ab) 41a -> 45b    0.10164 
+  2% CO(ab) 42a -> 44b    0.13870 
+  2% OV(ab) 44a -> 47b    0.15234 
+ 50% OV(ab) 45a -> 46b   -0.71000 
+ 41% OO(ab) 44a -> 45b    0.63769 
+Excited state 4    2.14331 eV -549.03471279 Hartree A1
+  
+  5% CO(ab) 41a -> 44b   -0.22578 
+  4% OV(ab) 44a -> 46b   -0.19093 
+ 86% OV(ab) 45a -> 47b   -0.92955 
+Excited state 5    2.27306 eV -549.02994461 Hartree B2
+  
+  1% CV(ab) 42a -> 50b   -0.11044 
+ 15% CO(ab) 41a -> 44b   -0.38592 
+ 72% OV(ab) 44a -> 46b   -0.85143 
+  6% OV(ab) 45a -> 47b    0.25199 
+Excited state 6    2.95073 eV -549.00504072 Hartree B2
+  
+ 27% CO(ab) 42a -> 44b    0.51838 
+ 61% OV(ab) 44a -> 47b    0.77948 
+  4% OV(ab) 45a -> 46b    0.19011 
+  3% OV(ab) 45a -> 49b    0.17575 
+Excited state 7    3.01355 eV -549.00273215 Hartree A1
+  
+  4% CV(ab) 40a -> 47b   -0.19128 
+  3% CV(ab) 43a -> 46b   -0.16606 
+ 93% CO(ab) 43a -> 44b    0.96189 
+Excited state 8    3.55156 eV -548.98296066 Hartree A2
+  
+  2% CV(ab) 40a -> 50b    0.12885 
+  2% CV(ab) 40a -> 58b   -0.12828 
+ 23% CV(ab) 43a -> 46b   -0.48310 
+  6% CV(ab) 43a -> 49b    0.25167 
+ 64% CO(ab) 40a -> 45b   -0.80014 
+Excited state 9    4.61960 eV -548.94371086 Hartree A2
+  
+  2% CV(ab) 38a -> 46b    0.12292 
+  3% CO(ab) 39a -> 44b   -0.17338 
+ 60% CO(ab) 42a -> 44b   -0.77513 
+ 24% OV(ab) 44a -> 47b    0.49403 
+  1% OV(ab) 44a -> 50b   -0.11513 
+  4% OV(ab) 45a -> 49b    0.19966 
+Excited state 10    4.65567 eV -548.94238530 Hartree A1
+  
+excited energy  [-0.84587375 -0.25568432  1.98392817  2.1433136   2.27306253  2.9507318
+  3.01355115  3.55156084  4.61960205  4.65567239]
+method=0 (default) ALDA0, method=1 multicollinear, method=2 collinear
+fglobal 0.25999999999999995
+50
+Converged  [ True  True  True  True  True  True  True  True  True  True]
+fun_bhandhlyp 0.40
+ground_sym  3
+ 97% OO(ab) 45a -> 44b   -0.98296 
+Excited state 1   -0.86670 eV -549.14532879 Hartree A1
+  
+  2% CV(ab) 41a -> 46b   -0.14409 
+  2% CV(ab) 42a -> 47b   -0.13188 
+ 46% OO(ab) 44a -> 44b   -0.67976 
+ 46% OO(ab) 45a -> 45b    0.67976 
+Excited state 2   -0.31352 eV -549.12499972 Hartree B2
+  
+  2% CO(ab) 42a -> 44b    0.12420 
+ 21% OV(ab) 45a -> 46b   -0.45812 
+ 74% OO(ab) 44a -> 45b   -0.86075 
+Excited state 3    1.99074 eV -549.04031993 Hartree A1
+  
+  1% CO(ab) 41a -> 45b    0.11816 
+  3% CO(ab) 42a -> 44b    0.18338 
+  3% OV(ab) 44a -> 47b    0.17610 
+ 68% OV(ab) 45a -> 46b   -0.82450 
+ 21% OO(ab) 44a -> 45b    0.45650 
+Excited state 4    2.17974 eV -549.03337422 Hartree A1
+  
+  6% CO(ab) 41a -> 44b   -0.24556 
+  6% OV(ab) 44a -> 46b   -0.23778 
+ 83% OV(ab) 45a -> 47b   -0.91369 
+Excited state 5    2.32187 eV -549.02815110 Hartree B2
+  
+  1% CV(ab) 41a -> 49b   -0.10334 
+  1% CV(ab) 42a -> 50b   -0.11474 
+ 14% CO(ab) 41a -> 44b   -0.36919 
+ 70% OV(ab) 44a -> 46b   -0.83961 
+  9% OV(ab) 45a -> 47b    0.30121 
+Excited state 6    3.00161 eV -549.00317111 Hartree B2
+  
+ 25% CO(ab) 42a -> 44b   -0.50219 
+ 60% OV(ab) 44a -> 47b   -0.77673 
+  5% OV(ab) 45a -> 46b   -0.22450 
+  3% OV(ab) 45a -> 49b   -0.18663 
+Excited state 7    3.05678 eV -549.00114339 Hartree A1
+  
+  4% CV(ab) 40a -> 47b    0.19300 
+  3% CV(ab) 43a -> 46b    0.16573 
+ 92% CO(ab) 43a -> 44b   -0.96146 
+Excited state 8    3.55027 eV -548.98300807 Hartree A2
+  
+  2% CV(ab) 40a -> 50b    0.12787 
+  2% CV(ab) 40a -> 58b   -0.12839 
+ 22% CV(ab) 43a -> 46b   -0.47423 
+  6% CV(ab) 43a -> 49b    0.25083 
+ 65% CO(ab) 40a -> 45b   -0.80581 
+Excited state 9    4.61104 eV -548.94402550 Hartree A2
+  
+  2% CV(ab) 38a -> 46b   -0.12308 
+  1% CV(ab) 42a -> 46b    0.11464 
+  1% CO(ab) 38a -> 44b   -0.11212 
+  4% CO(ab) 39a -> 44b    0.19127 
+ 59% CO(ab) 42a -> 44b    0.76566 
+ 22% OV(ab) 44a -> 47b   -0.46406 
+  2% OV(ab) 44a -> 50b    0.14084 
+  6% OV(ab) 45a -> 49b   -0.24373 
+Excited state 10    4.68144 eV -548.94143833 Hartree A1
+  
+excited energy  [-0.86670103 -0.31351889  1.99073565  2.17973785  2.32186635  3.00160631
+  3.05678343  3.55027054  4.61104039  4.68144093]
+method=0 (default) ALDA0, method=1 multicollinear, method=2 collinear
+fglobal 0.32499999999999996
+50
+Converged  [ True  True  True  True  True  True  True  True  True  True]
+fun_bhandhlyp 0.50
+ground_sym  3
+ 96% OO(ab) 45a -> 44b    0.98181 
+Excited state 1   -0.88838 eV -549.14612552 Hartree A1
+  
+  2% CV(ab) 41a -> 46b   -0.14854 
+  2% CV(ab) 42a -> 47b   -0.13597 
+ 46% OO(ab) 44a -> 44b   -0.67816 
+ 46% OO(ab) 45a -> 45b    0.67816 
+Excited state 2   -0.37307 eV -549.12718830 Hartree B2
+  
+  1% CO(ab) 42a -> 44b   -0.10307 
+ 11% OV(ab) 45a -> 46b    0.33697 
+ 84% OO(ab) 44a -> 45b    0.91518 
+Excited state 3    1.98404 eV -549.04056591 Hartree A1
+  
+  2% CO(ab) 41a -> 45b   -0.12707 
+  5% CO(ab) 42a -> 44b   -0.21449 
+  4% OV(ab) 44a -> 47b   -0.20223 
+ 76% OV(ab) 45a -> 46b    0.87039 
+ 11% OO(ab) 44a -> 45b   -0.33021 
+Excited state 4    2.22595 eV -549.03167590 Hartree A1
+  
+  7% CO(ab) 41a -> 44b   -0.26389 
+  8% OV(ab) 44a -> 46b   -0.28319 
+  1% OV(ab) 44a -> 49b   -0.10128 
+ 80% OV(ab) 45a -> 47b   -0.89550 
+Excited state 5    2.36612 eV -549.02652494 Hartree B2
+  
+  1% CV(ab) 41a -> 49b    0.10659 
+  1% CV(ab) 42a -> 50b    0.11873 
+ 12% CO(ab) 41a -> 44b    0.35138 
+ 68% OV(ab) 44a -> 46b    0.82545 
+ 12% OV(ab) 45a -> 47b   -0.34859 
+Excited state 6    3.05543 eV -549.00119302 Hartree B2
+  
+ 23% CO(ab) 42a -> 44b    0.48477 
+ 60% OV(ab) 44a -> 47b    0.77243 
+  7% OV(ab) 45a -> 46b    0.25969 
+  4% OV(ab) 45a -> 49b    0.19750 
+Excited state 7    3.10149 eV -548.99950055 Hartree A1
+  
+  4% CV(ab) 40a -> 47b   -0.19466 
+  3% CV(ab) 43a -> 46b   -0.16542 
+ 92% CO(ab) 43a -> 44b    0.96103 
+Excited state 8    3.54887 eV -548.98305960 Hartree A2
+  
+  2% CV(ab) 40a -> 50b    0.12694 
+  2% CV(ab) 40a -> 58b   -0.12850 
+ 22% CV(ab) 43a -> 46b   -0.46582 
+  6% CV(ab) 43a -> 49b    0.25006 
+ 66% CO(ab) 40a -> 45b   -0.81104 
+Excited state 9    4.60177 eV -548.94436633 Hartree A2
+  
+  1% CV(ab) 38a -> 46b    0.12234 
+  2% CV(ab) 42a -> 46b   -0.13275 
+  2% CO(ab) 38a -> 44b    0.13638 
+  4% CO(ab) 39a -> 44b   -0.20396 
+ 57% CO(ab) 42a -> 44b   -0.75458 
+ 19% OV(ab) 44a -> 47b    0.43465 
+  3% OV(ab) 44a -> 50b   -0.16312 
+  8% OV(ab) 45a -> 49b    0.27745 
+Excited state 10    4.69962 eV -548.94077037 Hartree A1
+  
+excited energy  [-0.8883812  -0.37307309  1.98404217  2.22595156  2.36611634  3.05543286
+  3.10148742  3.5488686   4.60176603  4.69961688]
+Done
+Job finished at: Wed Dec  3 16:19:31 CST 2025
