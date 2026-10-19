@@ -1,0 +1,288 @@
+AUDIT: TADF_all.xlsx sheet 'MR-TADF'  vs  every pyscf log shipped in this repository
+
+========================================================================================================================
+1. LOGS USED
+========================================================================================================================
+[TDDFT   ] bhhlyp.out2                  gto.M= 17 TD blocks= 16 SF arrays=  0  PySCF=2.14.0
+[TDDFT   ] tda_b3lyp_pbe0_cam.log       gto.M=105 TD blocks=210 SF arrays=  0  PySCF=2.11.0
+[TDDFT   ] tda_bhhlyp.log               gto.M= 10 TD blocks= 40 SF arrays=  0  PySCF=2.11.0
+[TDDFT   ] tda_tddft_bhhlyp.log1        gto.M= 16 TD blocks= 60 SF arrays=  0  PySCF=2.14.0
+[TDDFT   ] tda_tddft_bhhlyp.log2        gto.M= 19 TD blocks= 72 SF arrays=  0  PySCF=2.14.0
+[TDDFT   ] tda_tddft_bhhlyp.log2_2      gto.M= 20 TD blocks= 19 SF arrays=  0  PySCF=2.14.0
+[TDDFT   ] tda_tddft_bhhlyp.log3        gto.M= 10 TD blocks= 40 SF arrays=  0  PySCF=2.11.0
+[TDDFT   ] tddft_b3lyp.log              gto.M= 37 TD blocks= 70 SF arrays=  0  PySCF=2.11.0
+[TDDFT   ] tddft_camb3lyp.log           gto.M= 27 TD blocks= 53 SF arrays=  0  PySCF=2.11.0
+[TDDFT   ] tddft_camb3lyp.log2          gto.M= 10 TD blocks= 20 SF arrays=  0  PySCF=2.11.0
+[TDDFT   ] tddft_pbe0.log               gto.M= 35 TD blocks= 70 SF arrays=  0  PySCF=2.11.0
+[USF-TDA ] alda0_bhhlyp.log             gto.M= 25 TD blocks=  0 SF arrays= 25  PySCF=2.14.0
+[USF-TDA ] alda0_mc_b3lyp.log1          gto.M= 25 TD blocks=  0 SF arrays= 48  PySCF=2.11.0
+[USF-TDA ] alda0_mc_b3lyp.log2          gto.M= 15 TD blocks=  0 SF arrays= 30  PySCF=2.11.0
+[USF-TDA ] alda0_mc_b3lyp_mol30.log     gto.M=  5 TD blocks=  0 SF arrays= 10  PySCF=2.11.0
+[USF-TDA ] alda0_mc_bhhlyp.log          gto.M= 11 TD blocks=  0 SF arrays=  0  PySCF=2.11.0
+[USF-TDA ] alda0_mc_cam.log1            gto.M= 30 TD blocks=  0 SF arrays= 58  PySCF=2.11.0
+[USF-TDA ] alda0_mc_cam.log2            gto.M= 10 TD blocks=  0 SF arrays= 20  PySCF=2.11.0
+[USF-TDA ] alda0_mc_pbe0.log            gto.M= 35 TD blocks=  0 SF arrays= 70  PySCF=2.11.0
+[USF-TDA ] mc_bhhlyp.log                gto.M= 25 TD blocks=  0 SF arrays= 50  PySCF=2.14.0
+[XSF-TDA ] alda0_mc_b3lyp.log           gto.M= 36 TD blocks=  0 SF arrays= 70  PySCF=2.11.0
+[XSF-TDA ] alda0_mc_b3lyp.log2          gto.M=  3 TD blocks=  0 SF arrays=  6  PySCF=2.11.0
+[XSF-TDA ] alda0_mc_bhhlyp.log1         gto.M= 34 TD blocks=  0 SF arrays= 66  PySCF=2.11.0
+[XSF-TDA ] alda0_mc_bhhlyp.log2         gto.M=  1 TD blocks=  0 SF arrays=  1  PySCF=2.11.0
+[XSF-TDA ] alda0_mc_cam.log1            gto.M= 28 TD blocks=  0 SF arrays= 52  PySCF=2.11.0
+[XSF-TDA ] alda0_mc_cam.log2            gto.M= 11 TD blocks=  0 SF arrays= 20  PySCF=2.11.0
+[XSF-TDA ] alda0_mc_cam.log3            gto.M=  1 TD blocks=  0 SF arrays=  0  PySCF=2.11.0
+[XSF-TDA ] alda0_mc_cam.log4            gto.M=  3 TD blocks=  0 SF arrays=  6  PySCF=2.11.0
+[XSF-TDA ] alda0_mc_pbe0.log1           gto.M= 24 TD blocks=  0 SF arrays= 46  PySCF=2.11.0
+[XSF-TDA ] alda0_mc_pbe0.log2           gto.M=  3 TD blocks=  0 SF arrays=  6  PySCF=2.11.0
+[XSF-TDA ] alda0_mc_pbe0.log3           gto.M= 10 TD blocks=  0 SF arrays= 20  PySCF=2.11.0
+[XSF-TDA ] alda0_mc_pbe0.log4           gto.M=  1 TD blocks=  0 SF arrays=  0  PySCF=2.11.0
+[XSF-TDA ] b3lyp_3.log                  gto.M=  3 TD blocks=  0 SF arrays=  6  PySCF=2.11.0
+
+========================================================================================================================
+2. PER-COLUMN VERDICT
+========================================================================================================================
+col method   var    functional  recipe                    OK state scale nosup miss
+  C TDA      -      B3LYP       S1-T1                     35     0     0     0    0
+  D TD-DFT   -      B3LYP       S1-T1                     35     0     0     0    0
+  F USF-TDA  ALDA0  B3LYP       1st singlet (by <S^2>)    34     0     0     1    0
+  G XSF-TDA  ALDA0  B3LYP       2nd eigenvalue            34     0     1     0    0
+  H USF-TDA  MC     B3LYP       1st singlet (by <S^2>)    34     0     0     1    0
+  I XSF-TDA  MC     B3LYP       2nd eigenvalue            34     0     0     1    0
+  K TDA      -      PBE0        S1-T1                     35     0     0     0    0
+  L TD-DFT   -      PBE0        S1-T1                     35     0     0     0    0
+  N USF-TDA  ALDA0  PBE0        1st singlet (by <S^2>)    35     0     0     0    0
+  O XSF-TDA  ALDA0  PBE0        2nd eigenvalue            35     0     0     0    0
+  P USF-TDA  MC     PBE0        1st singlet (by <S^2>)    35     0     0     0    0
+  Q XSF-TDA  MC     PBE0        2nd eigenvalue            35     0     0     0    0
+  S TDA      -      BHHLYP      S1-T1                     35     0     0     0    0
+  T TD-DFT   -      BHHLYP      S1-T1                     35     0     0     0    0
+  V USF-TDA  ALDA0  BHHLYP      1st singlet (by <S^2>)    25     0     0     0   10
+  W XSF-TDA  ALDA0  BHHLYP      2nd eigenvalue            34     0     0     0    1
+  X USF-TDA  MC     BHHLYP      1st singlet (by <S^2>)    25     0     0     0   10
+  Y XSF-TDA  MC     BHHLYP      2nd eigenvalue            33     0     0     0    2
+ AA TDA      -      CAM-B3LYP   S1-T1                     35     0     0     0    0
+ AB TD-DFT   -      CAM-B3LYP   S1-T1                     35     0     0     0    0
+ AD USF-TDA  ALDA0  CAM-B3LYP   1st singlet (by <S^2>)    35     0     0     0    0
+ AE XSF-TDA  ALDA0  CAM-B3LYP   2nd eigenvalue            33     0     0     2    0
+ AF USF-TDA  MC     CAM-B3LYP   1st singlet (by <S^2>)    35     0     0     0    0
+ AG XSF-TDA  MC     CAM-B3LYP   2nd eigenvalue            32     0     0     3    0
+
+   TOTAL: OK 808, other state 0, scale 1, no support 8, missing 23, excel empty 0
+
+========================================================================================================================
+3. CELLS THAT NO SHIPPED LOG REPRODUCES  (the real problems)
+========================================================================================================================
+  col  F USF-TDA ALDA0  B3LYP       #34 QA-1                   excel = 0.27393    log = 0.06511    diff = -0.20882
+        verdict: NO SUPPORT   from alda0_mc_b3lyp.log2 
+  col  G XSF-TDA ALDA0  B3LYP       #25 OAB-ABP-1              excel = 0.00191    log = 1.90514    diff = +1.90323
+        verdict: SCALE   from alda0_mc_b3lyp.log array[1]/1000
+  col  H USF-TDA MC     B3LYP       #34 QA-1                   excel = 0.24338    log = 0.03553    diff = -0.20785
+        verdict: NO SUPPORT   from alda0_mc_b3lyp.log2 
+  col  I XSF-TDA MC     B3LYP       #13 3F-BN                  excel = 0.07721    log = 0.08119    diff = +0.00398
+        verdict: NO SUPPORT   from alda0_mc_b3lyp.log 
+  col AE XSF-TDA ALDA0  CAM-B3LYP   # 9 a-3BNOH                excel = 0.33757    log = 0.31489    diff = -0.02268
+        verdict: NO SUPPORT   from alda0_mc_cam.log1 
+  col AE XSF-TDA ALDA0  CAM-B3LYP   #34 QA-1                   excel = 0.30521    log = 0.30621    diff = +0.00100
+        verdict: NO SUPPORT   from alda0_mc_cam.log2 
+  col AG XSF-TDA MC     CAM-B3LYP   # 9 a-3BNOH                excel = 0.54019    log = 0.24241    diff = -0.29778
+        verdict: NO SUPPORT   from alda0_mc_cam.log1 
+  col AG XSF-TDA MC     CAM-B3LYP   #20 ADBNA-Me-Tip           excel = 0.36530    log = 0.36473    diff = -0.00057
+        verdict: NO SUPPORT   from alda0_mc_cam.log1 
+  col AG XSF-TDA MC     CAM-B3LYP   #34 QA-1                   excel = 0.51502    log = 0.51603    diff = +0.00101
+        verdict: NO SUPPORT   from alda0_mc_cam.log2 
+
+========================================================================================================================
+4. CELLS TAKEN FROM A DIFFERENT RUN THAN THE FIRST LOG ON DISK
+   (the number does exist in the repo, so not an error - but the runs disagree)
+========================================================================================================================
+  col  F USF-TDA ALDA0  B3LYP       #30 DDiKTa                 excel uses alda0_mc_b3lyp_mol30.log
+        all runs: alda0_mc_b3lyp.log2=0.13770, alda0_mc_b3lyp_mol30.log=0.13769, alda0_mc_b3lyp_mol30.log=0.37298, alda0_mc_b3lyp_mol30.log=0.37306, alda0_mc_b3lyp_mol30.log=0.37313, alda0_mc_b3lyp_mol30.log=0.37315
+  col  G XSF-TDA ALDA0  B3LYP       #23 ADBNA-Me-Mes,MesCz     excel uses alda0_mc_b3lyp.log2
+        all runs: alda0_mc_b3lyp.log2=0.11212, alda0_mc_b3lyp.log=-0.14936, b3lyp_3.log=0.11212
+  col  G XSF-TDA ALDA0  B3LYP       #30 DDiKTa                 excel uses alda0_mc_b3lyp.log2
+        all runs: alda0_mc_b3lyp.log2=0.11629, alda0_mc_b3lyp.log=-0.06732, b3lyp_3.log=0.11629
+  col  G XSF-TDA ALDA0  B3LYP       #34 QA-1                   excel uses alda0_mc_b3lyp.log2
+        all runs: alda0_mc_b3lyp.log2=0.18919, alda0_mc_b3lyp.log=-0.84091, b3lyp_3.log=0.18919
+  col  H USF-TDA MC     B3LYP       #30 DDiKTa                 excel uses alda0_mc_b3lyp_mol30.log
+        all runs: alda0_mc_b3lyp.log2=0.10772, alda0_mc_b3lyp_mol30.log=0.10771, alda0_mc_b3lyp_mol30.log=0.33353, alda0_mc_b3lyp_mol30.log=0.33355, alda0_mc_b3lyp_mol30.log=0.33357
+  col  I XSF-TDA MC     B3LYP       #23 ADBNA-Me-Mes,MesCz     excel uses alda0_mc_b3lyp.log2
+        all runs: alda0_mc_b3lyp.log2=0.12658, alda0_mc_b3lyp.log=-0.12961, b3lyp_3.log=0.12658
+  col  I XSF-TDA MC     B3LYP       #30 DDiKTa                 excel uses alda0_mc_b3lyp.log2
+        all runs: alda0_mc_b3lyp.log2=0.18167, alda0_mc_b3lyp.log=0.06201, b3lyp_3.log=0.18167
+  col  I XSF-TDA MC     B3LYP       #34 QA-1                   excel uses alda0_mc_b3lyp.log2
+        all runs: alda0_mc_b3lyp.log2=0.19104, alda0_mc_b3lyp.log=-1.01517, b3lyp_3.log=0.19104
+  col  O XSF-TDA ALDA0  PBE0        #23 ADBNA-Me-Mes,MesCz     excel uses alda0_mc_pbe0.log2
+        all runs: alda0_mc_pbe0.log1=-0.19509, alda0_mc_pbe0.log2=0.13802
+  col  Q XSF-TDA MC     PBE0        #23 ADBNA-Me-Mes,MesCz     excel uses alda0_mc_pbe0.log2
+        all runs: alda0_mc_pbe0.log1=-0.16495, alda0_mc_pbe0.log2=0.21616
+  col AE XSF-TDA ALDA0  CAM-B3LYP   #23 ADBNA-Me-Mes,MesCz     excel uses alda0_mc_cam.log4
+        all runs: alda0_mc_cam.log1=-0.98745, alda0_mc_cam.log4=0.15343
+  col AG XSF-TDA MC     CAM-B3LYP   #23 ADBNA-Me-Mes,MesCz     excel uses alda0_mc_cam.log4
+        all runs: alda0_mc_cam.log1=-1.22296, alda0_mc_cam.log4=0.37960
+
+========================================================================================================================
+5. MISSING DATA
+========================================================================================================================
+5a. the cell is filled but the repo has no such calculation
+  col  V USF-TDA ALDA0  BHHLYP      10 cells: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  col  W XSF-TDA ALDA0  BHHLYP       1 cells: [34]
+  col  X USF-TDA MC     BHHLYP      10 cells: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  col  Y XSF-TDA MC     BHHLYP       2 cells: [34, 35]
+
+5b. entire excel blocks without any log in this repository
+  USF-TD-DFT/B3LYP  E                             35 filled cells - no log here
+  USF-TD-DFT/PBE0   M                             35 filled cells - no log here
+  USF-TD-DFT/BHHLYP U                             35 filled cells - no log here
+  USF-TD-DFT/CAM-B3LYP AC                            35 filled cells - no log here
+  CV1               AI,AJ,AK,AL,AM,AN,AO,AP      280 filled cells - no log here
+  DS2               AR,AS,AT,AU,AV,AW,AX,AY,AZ,A[,A\,A] 420 filled cells - no log here
+  OO1               A_                            35 filled cells - no log here
+
+5c. cells that are empty in the excel although a log exists
+  none
+
+========================================================================================================================
+6. DEFINITION NOTE  (why the columns are not all the same quantity)
+========================================================================================================================
+  C,K,S,AA (TDA) and D,L,T,AB (TD-DFT) are true gaps  S1 - T1.
+  F,H,N,P,V,X,AD,AF (USF-TDA) and G,I,O,Q,W,Y,AE,AG (XSF-TDA) are the first singlet of a
+  spin-flip spectrum measured from the triplet reference state; the spin-flip spectrum
+  still contains the m_s = 0 component of that triplet (it is not spin complete), so the
+  number is smaller than a genuine S1 - T1 gap by the residual triplet energy:
+    USF-TDA ALDA0 B3LYP       residual m_s=0 triplet - S1 = -0.302 .. +0.080 eV, mean -0.187   (34 molecules)
+    USF-TDA MC    B3LYP       residual m_s=0 triplet - S1 = -0.312 .. +0.027 eV, mean -0.195   (35 molecules)
+    USF-TDA ALDA0 PBE0        residual m_s=0 triplet - S1 = -0.348 .. -0.033 eV, mean -0.236   (35 molecules)
+    USF-TDA MC    PBE0        residual m_s=0 triplet - S1 = -0.363 .. -0.064 eV, mean -0.255   (35 molecules)
+    USF-TDA ALDA0 BHHLYP      residual m_s=0 triplet - S1 = -0.569 .. +0.189 eV, mean -0.399   (25 molecules)
+    USF-TDA MC    BHHLYP      residual m_s=0 triplet - S1 = -0.588 .. +0.142 eV, mean -0.401   (25 molecules)
+    USF-TDA ALDA0 CAM-B3LYP   residual m_s=0 triplet - S1 = -0.564 .. -0.118 eV, mean -0.421   (35 molecules)
+    USF-TDA MC    CAM-B3LYP   residual m_s=0 triplet - S1 = -0.570 .. -0.155 eV, mean -0.427   (35 molecules)
+
+========================================================================================================================
+7. THE SAME CALCULATION WAS RUN MORE THAN ONCE WITH DIFFERENT RESULTS
+========================================================================================================================
+   (each line = one molecule/variant that appears in several logs; the spread is the
+    difference between the smallest and largest value the logs give for that cell)
+  col AG #23 ADBNA-Me-Mes,MesCz     XSF-TDA MC     CAM-B3LYP   spread = 1.6026 eV
+          alda0_mc_cam.log1              -1.22296
+          alda0_mc_cam.log4              0.37960
+  col  I #34 QA-1                   XSF-TDA MC     B3LYP       spread = 1.2062 eV
+          alda0_mc_b3lyp.log             -1.01517
+          alda0_mc_b3lyp.log2            0.19104
+          b3lyp_3.log                    0.19104
+  col AE #23 ADBNA-Me-Mes,MesCz     XSF-TDA ALDA0  CAM-B3LYP   spread = 1.1409 eV
+          alda0_mc_cam.log1              -0.98745
+          alda0_mc_cam.log4              0.15343
+  col  G #34 QA-1                   XSF-TDA ALDA0  B3LYP       spread = 1.0301 eV
+          alda0_mc_b3lyp.log             -0.84091
+          alda0_mc_b3lyp.log2            0.18919
+          b3lyp_3.log                    0.18919
+  col  Q #23 ADBNA-Me-Mes,MesCz     XSF-TDA MC     PBE0        spread = 0.3811 eV
+          alda0_mc_pbe0.log1             -0.16495
+          alda0_mc_pbe0.log2             0.21616
+  col  O #23 ADBNA-Me-Mes,MesCz     XSF-TDA ALDA0  PBE0        spread = 0.3331 eV
+          alda0_mc_pbe0.log1             -0.19509
+          alda0_mc_pbe0.log2             0.13802
+  col  G #23 ADBNA-Me-Mes,MesCz     XSF-TDA ALDA0  B3LYP       spread = 0.2615 eV
+          alda0_mc_b3lyp.log             -0.14936
+          alda0_mc_b3lyp.log2            0.11212
+          b3lyp_3.log                    0.11212
+  col  I #23 ADBNA-Me-Mes,MesCz     XSF-TDA MC     B3LYP       spread = 0.2562 eV
+          alda0_mc_b3lyp.log             -0.12961
+          alda0_mc_b3lyp.log2            0.12658
+          b3lyp_3.log                    0.12658
+  col  F #30 DDiKTa                 USF-TDA ALDA0  B3LYP       spread = 0.2355 eV
+          alda0_mc_b3lyp.log2            0.13770
+          alda0_mc_b3lyp_mol30.log       0.13769
+          alda0_mc_b3lyp_mol30.log       0.37298
+          alda0_mc_b3lyp_mol30.log       0.37306
+          alda0_mc_b3lyp_mol30.log       0.37313
+          alda0_mc_b3lyp_mol30.log       0.37315
+  col  H #30 DDiKTa                 USF-TDA MC     B3LYP       spread = 0.2259 eV
+          alda0_mc_b3lyp.log2            0.10772
+          alda0_mc_b3lyp_mol30.log       0.10771
+          alda0_mc_b3lyp_mol30.log       0.33353
+          alda0_mc_b3lyp_mol30.log       0.33355
+          alda0_mc_b3lyp_mol30.log       0.33357
+  col  G #30 DDiKTa                 XSF-TDA ALDA0  B3LYP       spread = 0.1836 eV
+          alda0_mc_b3lyp.log             -0.06732
+          alda0_mc_b3lyp.log2            0.11629
+          b3lyp_3.log                    0.11629
+  col  I #30 DDiKTa                 XSF-TDA MC     B3LYP       spread = 0.1197 eV
+          alda0_mc_b3lyp.log             0.06201
+          alda0_mc_b3lyp.log2            0.18167
+          b3lyp_3.log                    0.18167
+  col  V #26 DiKTa                  USF-TDA ALDA0  BHHLYP      spread = 0.0676 eV
+          alda0_bhhlyp.log               0.75105
+          mc_bhhlyp.log                  0.68346
+  col  V #19 ADBNA-Me-Mes           USF-TDA ALDA0  BHHLYP      spread = 0.0655 eV
+          alda0_bhhlyp.log               0.62048
+          mc_bhhlyp.log                  0.55496
+  col  V #23 ADBNA-Me-Mes,MesCz     USF-TDA ALDA0  BHHLYP      spread = 0.0654 eV
+          alda0_bhhlyp.log               0.62232
+          mc_bhhlyp.log                  0.55692
+  col  V #24 ADBNA-Me-MesCz         USF-TDA ALDA0  BHHLYP      spread = 0.0654 eV
+          alda0_bhhlyp.log               0.62206
+          mc_bhhlyp.log                  0.55669
+  col  V #21 ADBNA-Me-Mes,MesF      USF-TDA ALDA0  BHHLYP      spread = 0.0653 eV
+          alda0_bhhlyp.log               0.62476
+          mc_bhhlyp.log                  0.55950
+  col  V #22 ADBNA-Me-MesF          USF-TDA ALDA0  BHHLYP      spread = 0.0651 eV
+          alda0_bhhlyp.log               0.62518
+          mc_bhhlyp.log                  0.56005
+  col  V #20 ADBNA-Me-Tip           USF-TDA ALDA0  BHHLYP      spread = 0.0641 eV
+          alda0_bhhlyp.log               0.60210
+          mc_bhhlyp.log                  0.53798
+  col  V #31 DQAO                   USF-TDA ALDA0  BHHLYP      spread = 0.0640 eV
+          alda0_bhhlyp.log               0.76665
+          mc_bhhlyp.log                  0.70261
+  col  V #35 QA-2                   USF-TDA ALDA0  BHHLYP      spread = 0.0635 eV
+          alda0_bhhlyp.log               0.22406
+          mc_bhhlyp.log                  0.16058
+  col  V #29 Mes3DiKTa              USF-TDA ALDA0  BHHLYP      spread = 0.0619 eV
+          alda0_bhhlyp.log               0.75234
+          mc_bhhlyp.log                  0.69042
+  col  V #27 3-PhQAD                USF-TDA ALDA0  BHHLYP      spread = 0.0618 eV
+          alda0_bhhlyp.log               0.72180
+          mc_bhhlyp.log                  0.65995
+  col  V #25 OAB-ABP-1              USF-TDA ALDA0  BHHLYP      spread = 0.0604 eV
+          alda0_bhhlyp.log               0.44382
+          mc_bhhlyp.log                  0.38344
+  col  V #30 DDiKTa                 USF-TDA ALDA0  BHHLYP      spread = 0.0590 eV
+          alda0_bhhlyp.log               0.72103
+          mc_bhhlyp.log                  0.66199
+  col  V #28 7-PhQAD                USF-TDA ALDA0  BHHLYP      spread = 0.0562 eV
+          alda0_bhhlyp.log               0.78326
+          mc_bhhlyp.log                  0.72701
+  col  V #14 4F-BN                  USF-TDA ALDA0  BHHLYP      spread = 0.0561 eV
+          alda0_bhhlyp.log               0.47886
+          mc_bhhlyp.log                  0.42274
+  col  V #12 2F-BN                  USF-TDA ALDA0  BHHLYP      spread = 0.0558 eV
+          alda0_bhhlyp.log               0.49358
+          mc_bhhlyp.log                  0.43776
+  col  V #32 OQAO                   USF-TDA ALDA0  BHHLYP      spread = 0.0556 eV
+          alda0_bhhlyp.log               0.66572
+          mc_bhhlyp.log                  0.61007
+  col  V #13 3F-BN                  USF-TDA ALDA0  BHHLYP      spread = 0.0554 eV
+          alda0_bhhlyp.log               0.48816
+          mc_bhhlyp.log                  0.43276
+  col  V #11 DtBuPhCzB              USF-TDA ALDA0  BHHLYP      spread = 0.0548 eV
+          alda0_bhhlyp.log               0.45068
+          mc_bhhlyp.log                  0.39584
+  col  V #17 BBCz-DB                USF-TDA ALDA0  BHHLYP      spread = 0.0547 eV
+          alda0_bhhlyp.log               0.43465
+          mc_bhhlyp.log                  0.37996
+  col  V #15 m-Cz-BNCz              USF-TDA ALDA0  BHHLYP      spread = 0.0529 eV
+          alda0_bhhlyp.log               0.45944
+          mc_bhhlyp.log                  0.40656
+  col  V #33 SQAO                   USF-TDA ALDA0  BHHLYP      spread = 0.0525 eV
+          alda0_bhhlyp.log               0.56802
+          mc_bhhlyp.log                  0.51556
+  col  V #34 QA-1                   USF-TDA ALDA0  BHHLYP      spread = 0.0510 eV
+          alda0_bhhlyp.log               0.80463
+          mc_bhhlyp.log                  0.75364
+  col  V #16 AZA-BN                 USF-TDA ALDA0  BHHLYP      spread = 0.0445 eV
+          alda0_bhhlyp.log               0.58400
+          mc_bhhlyp.log                  0.53949
+  col  V #18 R-BN                   USF-TDA ALDA0  BHHLYP      spread = 0.0302 eV
+          alda0_bhhlyp.log               0.65813
+          mc_bhhlyp.log                  0.62794
