@@ -302,13 +302,14 @@ def collect(folders=None, geo2mol=None):
                     TD[(m, fun, spin)][mol].append((e, name))
                     n_td += 1
                 for k, blk in enumerate(sec["sf"]):
-                    # the method is decided from the block's own output
+                    # the method is decided from the block's own output:
+                    #   D<S^2> printed  -> USF-TDA (its recipe needs the spin values)
+                    #   CV(1) printed   -> XSF-TDA
+                    #   neither printed -> only the XSF recipe (2nd eigenvalue) can use it
                     if blk["usf"]:
                         blk_meth = "USF-TDA"
-                    elif blk["xsf"]:
-                        blk_meth = "XSF-TDA"
                     else:
-                        blk_meth = file_default
+                        blk_meth = "XSF-TDA"
                     SF[(blk_meth, blk["variant"], fun)][mol].append((blk["nums"], name))
                     SFSTATE[(blk_meth, blk["variant"], fun)][mol].append(
                         (blk["detail"], name, k))

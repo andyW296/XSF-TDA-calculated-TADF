@@ -29,7 +29,7 @@ b3lyp_out37.log                sections=   1 identified=   1 TD=   0 SF=   2 USF
 cam_b3lyp_mol6.log             sections=   2 identified=   2 TD=   0 SF=   4 USF-TDDFT= 0 PySCF=2.11.0
      USF-TDA/ALDA0/CAM-B3LYP:2, USF-TDA/MC/CAM-B3LYP:2
 huckel_mol37.log               sections=   1 identified=   1 TD=   0 SF=   2 USF-TDDFT= 0 PySCF=2.11.0
-     USF-TDA/ALDA0/CAM-B3LYP:1, USF-TDA/MC/CAM-B3LYP:1
+     XSF-TDA/ALDA0/CAM-B3LYP:1, XSF-TDA/MC/CAM-B3LYP:1
 huckel_mol6.log                sections=   1 identified=   1 TD=   0 SF=   2 USF-TDDFT= 0 PySCF=2.11.0
      USF-TDA/ALDA0/BHHLYP:1, USF-TDA/MC/BHHLYP:1
 mc_b3lyp.log                   sections=  46 identified=  46 TD=   0 SF=  46 USF-TDDFT= 0 PySCF=2.11.0
@@ -37,7 +37,7 @@ mc_b3lyp.log                   sections=  46 identified=  46 TD=   0 SF=  46 USF
 mc_b3lyp.log2                  sections=  46 identified=  46 TD=   0 SF=  46 USF-TDDFT= 0 PySCF=2.11.0
      USF-TDA/MC/B3LYP:46
 mol44_pbe0.log3                sections=   5 identified=   5 TD=   0 SF=  10 USF-TDDFT= 0 PySCF=2.11.0
-     USF-TDA/ALDA0/PBE0:5, USF-TDA/MC/PBE0:5
+     XSF-TDA/ALDA0/PBE0:5, XSF-TDA/MC/PBE0:5
 usf_tda_bhhlyp.log             sections=  46 identified=  46 TD=   0 SF=  92 USF-TDDFT= 0 PySCF=2.11.0
      USF-TDA/ALDA0/BHHLYP:46, USF-TDA/MC/BHHLYP:46
 usf_tddft_bhhlyp.log           sections=  46 identified=  46 TD=   0 SF=   0 USF-TDDFT=46 PySCF=2.11.0
@@ -47,19 +47,19 @@ alda0_b3lyp_pbe0_cam.log       sections= 180 identified= 180 TD=   0 SF= 356 USF
 alda0_mc_bhhlyp.log            sections=  48 identified=  48 TD=   0 SF=  92 USF-TDDFT= 0 PySCF=2.11.0
      XSF-TDA/ALDA0/BHHLYP:46, XSF-TDA/MC/BHHLYP:46, none/?:2
 alda0_mc_cam_mol37.log         sections=   1 identified=   1 TD=   0 SF=   2 USF-TDDFT= 0 PySCF=2.11.0
-     USF-TDA/ALDA0/CAM-B3LYP:1, USF-TDA/MC/CAM-B3LYP:1
+     XSF-TDA/ALDA0/CAM-B3LYP:1, XSF-TDA/MC/CAM-B3LYP:1
 alda0_mc_mol44_pbe0.log        sections=   5 identified=   5 TD=   0 SF=  10 USF-TDDFT= 0 PySCF=2.11.0
-     USF-TDA/ALDA0/PBE0:5, USF-TDA/MC/PBE0:5
+     XSF-TDA/ALDA0/PBE0:5, XSF-TDA/MC/PBE0:5
 alda0_pbe0_bhhlyp.log          sections= 139 identified= 139 TD=   0 SF= 138 USF-TDDFT= 0 PySCF=2.11.0
-     USF-TDA/ALDA0/BHHLYP:46, USF-TDA/ALDA0/PBE0:46, USF-TDA/ALDA0/blyp:46, none/?:1
+     XSF-TDA/ALDA0/BHHLYP:46, XSF-TDA/ALDA0/PBE0:46, XSF-TDA/ALDA0/blyp:46, none/?:1
 b3lyp_mol44.log                sections=   1 identified=   1 TD=   0 SF=   2 USF-TDDFT= 0 PySCF=2.11.0
      XSF-TDA/ALDA0/B3LYP:1, XSF-TDA/MC/B3LYP:1
 mc_b3lyp.log                   sections=  46 identified=  46 TD=   0 SF=  46 USF-TDDFT= 0 PySCF=2.11.0
-     USF-TDA/MC/B3LYP:46
+     XSF-TDA/MC/B3LYP:46
 mc_pbe0_bhhlyp.log             sections= 138 identified= 138 TD=   0 SF= 138 USF-TDDFT= 0 PySCF=2.11.0
-     USF-TDA/MC/BHHLYP:46, USF-TDA/MC/PBE0:46, USF-TDA/MC/blyp:46
+     XSF-TDA/MC/BHHLYP:46, XSF-TDA/MC/PBE0:46, XSF-TDA/MC/blyp:46
 mc_pbe0_mol44.log              sections=   5 identified=   5 TD=   0 SF=  10 USF-TDDFT= 0 PySCF=2.11.0
-     USF-TDA/ALDA0/PBE0:5, USF-TDA/MC/PBE0:5
+     XSF-TDA/ALDA0/PBE0:5, XSF-TDA/MC/PBE0:5
 
 ==========================================================================================================================
 2. PER-COLUMN VERDICT
@@ -70,13 +70,13 @@ col method       var    functional  recipe                          OK state sca
   F USF-TDA      ALDA0  B3LYP       state 2/3 with smaller D<S^2>   45     0     0     0    0
   G XSF-TDA      ALDA0  B3LYP       2nd eigenvalue                  43     0     0     0    2
   H USF-TDA      MC     B3LYP       state 2/3 with smaller D<S^2>   45     0     0     0    0
-  I XSF-TDA      MC     B3LYP       2nd eigenvalue                  43     0     0     0    2
+  I XSF-TDA      MC     B3LYP       2nd eigenvalue                  45     0     0     0    0
   K TDA          -      PBE0        S1-T1                           45     0     0     0    0
   L TD-DFT       -      PBE0        S1-T1                           45     0     0     0    0
   N USF-TDA      ALDA0  PBE0        state 2/3 with smaller D<S^2>   45     0     0     0    0
-  O XSF-TDA      ALDA0  PBE0        2nd eigenvalue                  44     0     0     1    0
+  O XSF-TDA      ALDA0  PBE0        2nd eigenvalue                  45     0     0     0    0
   P USF-TDA      MC     PBE0        state 2/3 with smaller D<S^2>   45     0     0     0    0
-  Q XSF-TDA      MC     PBE0        2nd eigenvalue                  44     0     0     1    0
+  Q XSF-TDA      MC     PBE0        2nd eigenvalue                  45     0     0     0    0
   S TDA          -      BHHLYP      S1-T1                           45     0     0     0    0
   T TD-DFT       -      BHHLYP      S1-T1                           45     0     0     0    0
   U USF-TD-DFT   -      BHHLYP      state 2/3 with smaller <S^2>    45     0     0     0    0
@@ -87,24 +87,20 @@ col method       var    functional  recipe                          OK state sca
  AA TDA          -      CAM-B3LYP   S1-T1                           45     0     0     0    0
  AB TD-DFT       -      CAM-B3LYP   S1-T1                           45     0     0     0    0
  AD USF-TDA      ALDA0  CAM-B3LYP   state 2/3 with smaller D<S^2>   45     0     0     0    0
- AE XSF-TDA      ALDA0  CAM-B3LYP   2nd eigenvalue                  44     0     0     1    0
+ AE XSF-TDA      ALDA0  CAM-B3LYP   2nd eigenvalue                  45     0     0     0    0
  AF USF-TDA      MC     CAM-B3LYP   state 2/3 with smaller D<S^2>   45     0     0     0    0
- AG XSF-TDA      MC     CAM-B3LYP   2nd eigenvalue                  44     0     0     1    0
+ AG XSF-TDA      MC     CAM-B3LYP   2nd eigenvalue                  45     0     0     0    0
 
-   1125 cells in 25 columns -> OK 1117   other state 0   scale 0   no support 4   missing 4   excel empty 0
+   1125 cells in 25 columns -> OK 1123   other state 0   scale 0   no support 0   missing 2   excel empty 0
 
 ==========================================================================================================================
 3. CELLS NO LOG REPRODUCES
 ==========================================================================================================================
-  col  O XSF-TDA     ALDA0  PBE0        #44 excel = 0.05034    log = -1.00837   diff = -1.05871  [NO SUPPORT] alda0_b3lyp_pbe0_cam.log 2nd eigenvalue
-  col  Q XSF-TDA     MC     PBE0        #44 excel = -0.12511   log = -1.28242   diff = -1.15731  [NO SUPPORT] alda0_b3lyp_pbe0_cam.log 2nd eigenvalue
-  col AE XSF-TDA     ALDA0  CAM-B3LYP   #37 excel = -0.23883   log = -0.10142   diff = +0.13741  [NO SUPPORT] alda0_b3lyp_pbe0_cam.log 2nd eigenvalue
-  col AG XSF-TDA     MC     CAM-B3LYP   #37 excel = -0.17170   log = 0.04598    diff = +0.21768  [NO SUPPORT] alda0_b3lyp_pbe0_cam.log 2nd eigenvalue
+  none
 
 ==========================================================================================================================
 4. MISSING
 ==========================================================================================================================
   col  G XSF-TDA     ALDA0  B3LYP        2: [45, 46]
-  col  I XSF-TDA     MC     B3LYP        2: [45, 46]
 
   cells empty in the excel although a log exists: 0

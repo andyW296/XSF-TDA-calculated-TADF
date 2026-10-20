@@ -19,6 +19,17 @@ alda0_mc_b3lyp_pbe0_cam.log    sections= 327 identified= 327 TD=   0 SF= 652 USF
      XSF-TDA/ALDA0/B3LYP:159, XSF-TDA/ALDA0/CAM-B3LYP:8, XSF-TDA/ALDA0/PBE0:159, XSF-TDA/MC/B3LYP:159, XSF-TDA/MC/CAM-B3LYP:8, XSF-TDA/MC/PBE0:159, none/CAM-B3LYP:1
 alda0_mc_bhhlyp.log            sections= 159 identified= 159 TD=   0 SF= 318 USF-TDDFT=  0 PySCF=2.14.0
      XSF-TDA/ALDA0/BHHLYP:159, XSF-TDA/MC/BHHLYP:159
+b3lyp.log                      sections= 159 identified= 159 TD=   0 SF= 318 USF-TDDFT=  0 PySCF=2.11.0
+     XSF-TDA/ALDA0/B3LYP:159, XSF-TDA/MC/B3LYP:159
+pbe0.log                       sections= 159 identified= 159 TD=   0 SF= 318 USF-TDDFT=  0 PySCF=2.11.0
+     XSF-TDA/ALDA0/PBE0:159, XSF-TDA/MC/PBE0:159
+pbe0_77.log                    sections=   1 identified=   1 TD=   0 SF=   2 USF-TDDFT=  0 PySCF=2.11.0
+     XSF-TDA/ALDA0/PBE0:1, XSF-TDA/MC/PBE0:1
+tda.log                        sections= 477 identified= 477 TD= 954 SF=   0 USF-TDDFT=  0 PySCF=2.11.0
+tda_bhhlyp.log                 sections= 117 identified= 117 TD= 467 SF=   0 USF-TDDFT=  0 PySCF=2.11.0
+tddft.log                      sections= 477 identified= 477 TD= 954 SF=   0 USF-TDDFT=  0 PySCF=2.11.0
+tddft_bhhlyp.log               sections= 117 identified= 117 TD= 467 SF=   0 USF-TDDFT=  0 PySCF=2.11.0
+tddft_bhhlyp.log2              sections=  43 identified=  43 TD= 129 SF=   0 USF-TDDFT=  0 PySCF=2.14.0
 
 ======================================================================================================================
 2. PER-COLUMN VERDICT
@@ -29,14 +40,14 @@ col method       var    functional  recipe                           OK state sc
   F USF-TDA      ALDA0  B3LYP       state 2/3 with smaller D<S^2>   159     0     0     0    0
   G XSF-TDA      ALDA0  B3LYP       2nd eigenvalue                  159     0     0     0    0
   H USF-TDA      MC     B3LYP       state 2/3 with smaller D<S^2>   159     0     0     0    0
-  I XSF-TDA      MC     B3LYP       2nd eigenvalue                  156     0     2     1    0
+  I XSF-TDA      MC     B3LYP       2nd eigenvalue                  157     0     2     0    0
   K TDA          -      PBE0        S1-T1                           159     0     0     0    0
   L TD-DFT       -      PBE0        S1-T1                           159     0     0     0    0
   N USF-TDA      ALDA0  PBE0        state 2/3 with smaller D<S^2>   159     0     0     0    0
   O XSF-TDA      ALDA0  PBE0        2nd eigenvalue                  158     0     0     1    0
   P USF-TDA      MC     PBE0        state 2/3 with smaller D<S^2>   159     0     0     0    0
   Q XSF-TDA      MC     PBE0        2nd eigenvalue                  158     0     1     0    0
-  S TDA          -      BHHLYP      S1-T1                           117     0     0     0   42
+  S TDA          -      BHHLYP      S1-T1                           159     0     0     0    0
   T TD-DFT       -      BHHLYP      S1-T1                           116     0     0     0   43
   U USF-TD-DFT   -      BHHLYP      state 2/3 with smaller <S^2>    158     1     0     0    0
   V USF-TDA      ALDA0  BHHLYP      state 2/3 with smaller D<S^2>   159     0     0     0    0
@@ -50,58 +61,15 @@ col method       var    functional  recipe                           OK state sc
  AF USF-TDA      MC     CAM-B3LYP   state 2/3 with smaller D<S^2>   159     0     0     0    0
  AG XSF-TDA      MC     CAM-B3LYP   2nd eigenvalue                    8     0     0     0  151
 
-   3975 cells in 25 columns -> OK 3578   other state 1   scale 6   no support 3   missing 387   excel empty 0
+   3975 cells in 25 columns -> OK 3621   other state 1   scale 6   no support 2   missing 345   excel empty 0
 
 ======================================================================================================================
 3. CELLS THAT DO NOT MATCH THE LOGS
 ======================================================================================================================
   col  I XSF-TDA     MC     B3LYP       heptazine_2nh2                   excel =    0.00231 log =    2.30646 [SCALE] alda0_mc_b3lyp_pbe0_cam.log state 2/1000
-  col  I XSF-TDA     MC     B3LYP       isopyrene_2cn_1_6                excel =    0.00230 log =    2.24008 [NO SUPPORT] alda0_mc_b3lyp_pbe0_cam.log 2nd eigenvalue
   col  I XSF-TDA     MC     B3LYP       mol62                            excel =   -0.00163 log =   -1.63343 [SCALE] alda0_mc_b3lyp_pbe0_cam.log state 2/1000
   col  O XSF-TDA     ALDA0  PBE0        mol76                            excel =   -0.00034 log =   -3.40874 [NO SUPPORT] alda0_mc_b3lyp_pbe0_cam.log 2nd eigenvalue
   col  Q XSF-TDA     MC     PBE0        pentaazaphenalene_3nh2           excel =    0.00114 log =    1.14329 [SCALE] alda0_mc_b3lyp_pbe0_cam.log state 2/1000
-  col  S TDA         -      BHHLYP      mol76                            excel =    0.44749 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      mol76_4nh2                       excel =    0.55464 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      mol77                            excel =    0.60811 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      mol77_2oh                        excel =    0.72615 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      mol8                             excel =    0.32087 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      mol8_2cf3                        excel =    0.31334 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      mol8_2cn                         excel =    0.30857 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      mol8_2nh2                        excel =    0.34740 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      mol8_2oh                         excel =    0.32339 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      mol8_2ome                        excel =    0.32014 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      mol8_4oh                         excel =    0.33567 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      mol8_4ome                        excel =    0.34170 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      mol86                            excel =    0.37623 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      mol86_3nh2                       excel =    0.55695 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      mol86_3oh                        excel =    0.41220 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      mol98                            excel =    0.49433 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      mol98_3oh                        excel =    0.95408 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene                excel =    0.35238 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_1cf3           excel =    0.32751 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_1cf3_lumo      excel =    0.41294 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_1cn            excel =    0.33416 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_1cn_lumo       excel =    0.47175 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_1nh2           excel =    0.29597 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_1nme2          excel =    0.29670 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_1oh            excel =    0.27653 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_1ome           excel =    0.28269 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_2cf3           excel =    0.29925 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_2cf3_lumo      excel =    0.35921 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_2cn            excel =    0.31735 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_2cn_lumo       excel =    0.34626 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_2nh2           excel =    0.75397 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_2nh2_homo      excel =    0.61929 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_2nme2          excel =    0.78303 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_2oh            excel =    0.64736 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_2oh_homo       excel =    0.54383 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_2ome           excel =    0.60853 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_2ome_homo      excel =    0.43635 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_3cn_lumo       excel =    0.37957 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_3nh2           excel =    0.41038 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_3nme2          excel =    0.44187 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_3oh            excel =    0.37802 log =        nan [MISSING]  
-  col  S TDA         -      BHHLYP      pentaazaphenalene_3ome           excel =    0.38034 log =        nan [MISSING]  
   col  T TD-DFT      -      BHHLYP      mol62_4oh                        excel =    0.79389 log =        nan [MISSING]  
   col  T TD-DFT      -      BHHLYP      mol76                            excel =    0.34301 log =        nan [MISSING]  
   col  T TD-DFT      -      BHHLYP      mol76_4nh2                       excel =    1.15713 log =        nan [MISSING]  
@@ -459,7 +427,7 @@ col method       var    functional  recipe                           OK state sc
 status      MISSING  NO SUPPORT    OK  OTHER STATE  SCALE
 meth                                                     
 TD-DFT           43           0   593            0      0
-TDA              42           0   594            0      0
+TDA               0           0   636            0      0
 USF-TD-DFT        0           0   158            1      0
 USF-TDA           0           0  1272            0      0
-XSF-TDA         302           3   961            0      6
+XSF-TDA         302           2   962            0      6

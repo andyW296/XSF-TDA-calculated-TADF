@@ -190,9 +190,11 @@ col method       var    functional  recipe                          OK state sca
   col  G #23 ADBNA-Me-Mes,MesCz     XSF-TDA     ALDA0  B3LYP       spread = 0.2615 eV
           alda0_mc_b3lyp.log             -0.14936
           alda0_mc_b3lyp.log2            0.11212
+          b3lyp.log2                     -0.14936
   col  I #23 ADBNA-Me-Mes,MesCz     XSF-TDA     MC     B3LYP       spread = 0.2562 eV
           alda0_mc_b3lyp.log             -0.12961
           alda0_mc_b3lyp.log2            0.12658
+          b3lyp.log2                     -0.12961
   col  F #30 DDiKTa                 USF-TDA     ALDA0  B3LYP       spread = 0.2355 eV
           alda0_b3lyp_20_46.log          0.13770
           alda0_mc_b3lyp.log2            0.13770
@@ -232,9 +234,11 @@ col method       var    functional  recipe                          OK state sca
   col  G #30 DDiKTa                 XSF-TDA     ALDA0  B3LYP       spread = 0.1836 eV
           alda0_mc_b3lyp.log             -0.06732
           alda0_mc_b3lyp.log2            0.11629
+          b3lyp.log2                     -0.06732
   col  I #30 DDiKTa                 XSF-TDA     MC     B3LYP       spread = 0.1197 eV
           alda0_mc_b3lyp.log             0.06201
           alda0_mc_b3lyp.log2            0.18167
+          b3lyp.log2                     0.06201
   col  V #26 DiKTa                  USF-TDA     ALDA0  BHHLYP      spread = 0.0676 eV
           alda0_bhhlyp.log               0.75105
           mc_bhhlyp.log                  0.68346
