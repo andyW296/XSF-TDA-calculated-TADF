@@ -1,0 +1,430 @@
+Job started at: Sat Mar 28 17:51:05 CST 2026
+molecule_Ethynyl
+#INFO: **** input file is /export/home/lizd20/zhaohw/tddft/questdb/quarter/find_gx/quart.py ****
+#source /export/home/lizd20/clf/clf_jax/bin/activate
+
+from pyscf import gto, dft, scf, ao2mo, lib, tddft,fci
+from pyscf.fci import addons
+import numpy as np
+from pyscf.dft import numint
+import scipy
+from functools import reduce
+import h5py
+import os
+os.environ["OMP_NUM_THREADS"] = "48"
+
+import sys
+sys.path.append('/export/home/lizd20/zhaohw/tddft/')
+from XSF_TDA import XSF_TDA
+
+
+# 'Allyl'
+nstates = 7
+rad0 = ['AlCH2', 'Allyl', 'BH2', 'CH2N', 'CH2O+', 'ClO2', 'Ethynyl', 'F2BS', 'HBCl', 'H2BO', 'HCO', 'HOC', 'H2PO', 'H2PS', 'NH2', 'Nitromethyl', 'NO2', 'PH2',  'Vinyl']
+rad = ['Ethynyl']
+#fun = 'bhandhlyp'
+#funs = ['b3lyp','blyp','bhandhlyp','pbe0','camb3lyp']
+funs = ['blyp']
+def write_h5(name,exciteds,ground,s2,ds2,irreps_g=None):
+    fname = name + '.h5'
+    f = h5py.File(fname,'w')
+    f['molecule'] = name
+    #f['grounds'] = np.zeros(len_rad)
+    #f['Ds'] = np.zeros((len_rad,nstates))
+    f['exciteds'] = exciteds
+    f['ground'] = ground
+    f['s2'] = s2
+    f['ds2'] = ds2
+    #f['ground_irrep'] = irreps_g
+    f.close()
+    return None
+
+#write_h5(fun,nstates,rad)
+
+def read_xyz(name):
+    filename = '/export/home/lizd20/zhaohw/tddft/QUESTDB-main/geometries/xyz/'+ name + '.xyz'
+    try:
+        with open(filename, 'r') as f:
+            lines = f.readlines()
+    except:
+        filename = '/export/home/lizd20/zhaohw/tddft/QUESTDB-main/geometries/xyz/'+ name.lower() + '.xyz'
+        with open(filename,'r') as f:
+            lines = f.readlines()
+    atoms = []
+    for line in lines[2:]:
+        parts = line.split()
+        if len(parts) >=4:
+            atom = parts[0]
+            coords = list(map(float, parts[1:4]))
+            atoms.append((atom,coords))
+    return atoms
+
+for fun in funs:
+    for i in range(len(rad)):
+        atoms = read_xyz(rad[i])
+        print(f'molecule_{rad[i]}')
+        if '+' in rad[i]:
+            charge = 1
+        else:
+            charge = 0
+        mol = gto.M(                 
+            atom = atoms,
+            #basis = 'aug-cc-pvtz',
+            basis='aug-cc-pvtz',
+            #basis = 'cc-pvdz',
+            #basis='dzp',
+            #basis = '6-31G(d)',
+            charge = charge,
+            spin = 3, 
+            verbose = 4,
+            #cart=True,
+            #symmetry='C2v'
+            #symmetry=True,
+            )
+        #if mol.groupname == 'Coov':
+        #    mol.symmetry_subgroup = 'C2v'
+        #    mol.build()
+        #elif mol.groupname == 'Dooh':
+        #    mol.symmetry_subgroup = 'D2h'
+        #    mol.build()
+        if fun == 'hf':
+            mf = scf.ROHF(mol)
+        else:
+            mf = dft.ROKS(mol)
+            mf.xc = fun
+    #mf.irrep_nelec = {'A1':(5,4),'A2':(0,0),'B1':(2,1),'B2':(3,2)}
+        mf.level_shift = 0.1
+        mf.init_guess = 'huckel'
+        mf.grids.atom_grid = (99,590)
+        #if rad[i] == 'F2BS':
+        #    mf.irrep_nelec = {'A1': (10,10), 'A2':(1,1), 'B1':(4,2),'B2':(6,5)}
+    #mf.max_cycle = 100
+        #if fun == 'b3lyp':
+        #    mf.chkfile = f'test/b3lyp_{rad[i]}.chk'
+        #else:
+        #data = scf.chkfile.load(f'chkfile/b3lyp_{rad[i]}.chk','scf')
+        #mf.mo_coeff = data['mo_coeff']
+        #mf.mo_occ = data['mo_occ']
+        #mf.mo_energy = data['mo_energy']
+        mf.kernel()
+        if not mf.converged:
+            mf = scf.newton(mf)
+            mf.kernel()
+        assert mf.converged
+        mo, _, stable, _ = mf.stability(tol=1e-7,nroots=5,return_status=True)
+        if stable is False:
+            dm = mf.make_rdm1(mo, mf.mo_occ)
+            mf.kernel(dm0=dm)
+            mo, _, stable, _ = mf.stability(tol=1e-7,nroots=5,return_status=True)
+        if stable is False:
+            dm = mf.make_rdm1(mo,mf.mo_occ)
+            mf.grids.atom_grid = (99,590)
+            mf = mf.newton()
+            mf.kernel(dm0=dm)
+            mo, _, stable, _ = mf.stability(tol=1e-7,nroots=5,return_status=True)
+        if stable is False:
+            dm = mf.make_rdm1(mo,mf.mo_occ)
+            mf.level_shift = 0.5
+            mf.kernel(dm0=dm)
+            mo, _, stable, _ = mf.stability(tol=1e-7,nroots=5,return_status=True)
+        assert stable
+        sf_tda = XSF_TDA(mf,method=1,collinear_samples=20)
+        e0, values = sf_tda.kernel(nstates=nstates)
+        print(f'molecule {rad[i]} {fun} use scale')
+        _ = sf_tda.analyse()
+        print('ground energy ',mf.e_tot)
+        print('excited energy ',e0)
+        
+        
+        sf_tda = XSF_TDA(mf,method=1,collinear_samples=20)
+        e0, values = sf_tda.kernel(nstates=nstates,fit=False)
+        print(f'molecule {rad[i]} {fun} scale=1')
+        _ = sf_tda.analyse()
+        print('ground energy ',mf.e_tot)
+        print('excited energy ',e0) 
+
+
+print('DONE')
+#INFO: ******************** input file end ********************
+
+
+System: uname_result(system='Linux', node='node20', release='3.10.0-1160.el7.x86_64', version='#1 SMP Mon Oct 19 16:18:59 UTC 2020', machine='x86_64')  Threads 48
+Python 3.9.0 (default, Nov 15 2020, 14:28:56) 
+[GCC 7.3.0]
+numpy 1.26.4  scipy 1.13.1  h5py 3.11.0
+Date: Sat Mar 28 17:51:06 2026
+PySCF version 2.11.0
+PySCF path  /export/home/lizd20/anaconda3/envs/zhw/lib/python3.9/site-packages/pyscf
+
+[CONFIG] conf_file None
+[INPUT] verbose = 4
+[INPUT] num. atoms = 3
+[INPUT] num. electrons = 13
+[INPUT] charge = 0
+[INPUT] spin (= nelec alpha-beta = 2S) = 3
+[INPUT] symmetry False subgroup None
+[INPUT] Mole.unit = angstrom
+[INPUT] Symbol           X                Y                Z      unit          X                Y                Z       unit  Magmom
+[INPUT]  1 C      0.000000000000   0.000000000000  -0.536804870000 AA    0.000000000000   0.000000000000  -1.014414186633 Bohr   0.0
+[INPUT]  2 C      0.000000000000   0.000000000000   0.670589650000 AA    0.000000000000   0.000000000000   1.267230780468 Bohr   0.0
+[INPUT]  3 H      0.000000000000   0.000000000000  -1.592952450000 AA    0.000000000000   0.000000000000  -3.010243859955 Bohr   0.0
+
+nuclear repulsion = 20.1870555215168
+number of shells = 35
+number of NR pGTOs = 141
+number of NR cGTOs = 115
+basis = aug-cc-pvtz
+ecp = {}
+CPU time:         8.75
+
+
+******** <class 'pyscf.dft.roks.ROKS'> ********
+method = ROKS
+initial guess = huckel
+damping factor = 0
+level_shift factor = 0.1
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-09
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/209464.1.lizd20.q/tmppwmkuiu9
+max_memory 4000 MB (current use 70 MB)
+num. doubly occ = 5  num. singly occ = 3
+XC library pyscf.dft.libxc version 7.0.0
+    S. Lehtola, C. Steigemann, M. J.T. Oliveira, and M. A.L. Marques.,  SoftwareX 7, 1–5 (2018)
+XC functionals = blyp
+    A. D. Becke.,  Phys. Rev. A 38, 3098 (1988)
+    C. Lee, W. Yang, and R. G. Parr.,  Phys. Rev. B 37, 785 (1988)
+    B. Miehlich, A. Savin, H. Stoll, and H. Preuss.,  Chem. Phys. Lett. 157, 200 (1989)
+radial grids: 
+    Treutler-Ahlrichs [JCP 102, 346 (1995); DOI:10.1063/1.469408] (M4) radial grids
+    
+becke partition: Becke, JCP 88, 2547 (1988); DOI:10.1063/1.454033
+pruning grids: <function nwchem_prune at 0x2b4eb7b22430>
+grids dens level: 3
+symmetrized grids: False
+atomic radii adjust function: <function treutler_atomic_radii_adjust at 0x2b4eb750bb80>
+User specified grid scheme (99, 590)
+small_rho_cutoff = 1e-07
+Set gradient conv threshold to 3.16228e-05
+Initial guess from on-the-fly Huckel, doi:10.1021/acs.jctc.8b01089.
+Initial guess from on-the-fly Huckel, doi:10.1021/acs.jctc.8b01089.
+Spherically averaged atomic HF for {'H', 'C'}
+
+
+******** <class 'pyscf.scf.atom_hf.AtomSphAverageRHF'> ********
+method = AtomSphAverageRHF
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-09
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/209464.1.lizd20.q/tmpa341gah0
+max_memory 4000 MB (current use 117 MB)
+atom = C
+Set gradient conv threshold to 3.16228e-05
+Initial guess from minao.
+init E= -37.284380435047
+cycle= 1 E= -37.328008061309  delta_E= -0.0436  |g|=    0  |ddm|= 0.385
+cycle= 2 E= -37.3389821436195  delta_E= -0.011  |g|=    0  |ddm|= 0.22
+cycle= 3 E= -37.3426067688411  delta_E= -0.00362  |g|=    0  |ddm|= 0.0667
+cycle= 4 E= -37.3426145562345  delta_E= -7.79e-06  |g|=    0  |ddm|= 0.00476
+cycle= 5 E= -37.3426154546349  delta_E= -8.98e-07  |g|=    0  |ddm|= 0.00139
+cycle= 6 E= -37.3426154614531  delta_E= -6.82e-09  |g|=    0  |ddm|= 0.000183
+cycle= 7 E= -37.3426154614576  delta_E= -4.45e-12  |g|=    0  |ddm|= 5.69e-06
+Extra cycle  E= -37.3426154614576  delta_E= 7.11e-15  |g|=    0  |ddm|= 1.22e-07
+Atomic HF for atom  C  converged. SCF energy = -37.3426154614576
+
+
+
+******** 1 electron system ********
+Atomic HF for atom  H  converged. SCF energy = -0.499821176023959
+
+
+WARN: alpha nocc = 8  HOMO -0.0292370763612458 >= LUMO -0.0292370763612456
+
+
+WARN: beta  nocc = 5  HOMO -0.166975156974395 >= LUMO -0.166975156974395
+
+
+WARN: system HOMO -0.0292370763612458 >= system LUMO -0.166975156974395
+
+tot grids = 95880
+init E= -75.6002072767026
+
+WARN: HOMO -0.199343344045813 >= LUMO -0.236894286940789
+
+cycle= 1 E= -75.90071461095  delta_E= -0.301  |g|= 1.36  |ddm|= 1.75
+  HOMO = 0.109106900280558  LUMO = 0.126804276211807
+cycle= 2 E= -75.3081291864198  delta_E= 0.593  |g|= 1.53  |ddm|=  128
+
+WARN: HOMO 0.0149163633596443 >= LUMO -0.278734508739253
+
+cycle= 3 E= -75.892681936633  delta_E= -0.585  |g|= 0.612  |ddm|=  128
+
+WARN: HOMO -0.0411007167497365 >= LUMO -0.0456031806239484
+
+cycle= 4 E= -76.377627955789  delta_E= -0.485  |g|= 0.279  |ddm|= 1.08
+  HOMO = 0.0311656231382724  LUMO = 0.0758468029442553
+cycle= 5 E= -76.4026141749155  delta_E= -0.025  |g|= 0.105  |ddm|= 0.251
+  HOMO = 0.0298089275805424  LUMO = 0.0733937327163986
+cycle= 6 E= -76.4074172295694  delta_E= -0.0048  |g|= 0.0386  |ddm|= 0.0996
+  HOMO = 0.0311310041640701  LUMO = 0.0734717008390135
+cycle= 7 E= -76.4079274128467  delta_E= -0.00051  |g|= 0.0132  |ddm|= 0.0393
+  HOMO = 0.0323992703786941  LUMO = 0.0744502091906249
+cycle= 8 E= -76.4080399868041  delta_E= -0.000113  |g|= 0.0023  |ddm|= 0.0204
+  HOMO = 0.0323388377327068  LUMO = 0.0745724342322462
+cycle= 9 E= -76.4080509370186  delta_E= -1.1e-05  |g|= 0.000799  |ddm|= 0.0131
+  HOMO = 0.032179287620204  LUMO = 0.074475011728981
+cycle= 10 E= -76.4080514634289  delta_E= -5.26e-07  |g|= 0.000355  |ddm|= 0.00127
+  HOMO = 0.0321687229075448  LUMO = 0.0744796447354452
+cycle= 11 E= -76.4080516263068  delta_E= -1.63e-07  |g|= 0.000112  |ddm|= 0.0014
+  HOMO = 0.032175529432908  LUMO = 0.0744809077898391
+cycle= 12 E= -76.4080516421471  delta_E= -1.58e-08  |g|= 2.05e-05  |ddm|= 0.000389
+  HOMO = 0.0321710299072898  LUMO = 0.0744781098979881
+cycle= 13 E= -76.4080516436501  delta_E= -1.5e-09  |g|= 7.51e-06  |ddm|= 9.75e-05
+  HOMO = 0.0321726262031996  LUMO = 0.0744791383018084
+cycle= 14 E= -76.4080516438373  delta_E= -1.87e-10  |g|= 7.75e-06  |ddm|= 1.85e-05
+
+WARN: HOMO -0.017826942740337 >= LUMO -0.0255204360228877
+
+Extra cycle  E= -76.4080516421346  delta_E= 1.7e-09  |g|= 5.63e-05  |ddm|= 0.000703
+converged SCF energy = -76.4080516421346
+rohf_internal: lowest eigs of H = [0.00061997 0.05713056 0.09490305 0.10331804 0.14340096]
+<class 'pyscf.dft.roks.ROKS'> wavefunction is stable in the internal stability analysis
+method=0 (default) ALDA0, method=1 multicollinear, method=2 collinear
+Omega, alpha, hyb 0.0 0.0 0.0
+fglobal 0.3
+20
+Converged  [ True  True  True  True  True  True  True]
+molecule Ethynyl blyp use scale
+ 0.63% OV(ab) 7a -> 9b    0.07917 
+98.59% OO(ab) 8a -> 7b    0.99294 
+Excited state 1   -6.75166 eV -76.65617044 Hartree A
+CV(1): 0.086%, CO(1): 0.108%, OV(1): 1.066%, OO(1):98.741%
+========================================
+ 0.33% OV(ab) 6a -> 9b   -0.05767 
+ 0.28% OV(ab) 8a -> 19b    0.05256 
+ 0.53% OO(ab) 6a -> 7b   -0.07270 
+ 0.59% OO(ab) 7a -> 6b   -0.07677 
+97.08% OO(ab) 8a -> 6b   -0.98527 
+Excited state 2   -6.21868 eV -76.63658397 Hartree A
+CV(1): 0.036%, CO(1): 0.071%, OV(1): 1.699%, OO(1):98.194%
+========================================
+ 3.52% CO(ab) 5a -> 7b   -0.18768 
+27.32% OV(ab) 8a -> 9b   -0.52270 
+ 7.81% OO(ab) 6a -> 6b   -0.27954 
+15.49% OO(ab) 7a -> 7b   -0.39362 
+45.31% OO(ab) 8a -> 8b    0.67316 
+Excited state 3   -0.13039 eV -76.41284349 Hartree A
+CV(1): 0.113%, CO(1): 3.624%, OV(1):27.619%, OO(1):68.644%
+========================================
+98.96% OV(ab) 8a -> 10b    0.99481 
+ 0.40% OO(ab) 7a -> 6b   -0.06330 
+Excited state 4    0.69850 eV -76.38238235 Hartree A
+CV(1): 0.064%, CO(1): 0.011%, OV(1):99.251%, OO(1): 0.675%
+========================================
+ 5.42% CO(ab) 5a -> 7b   -0.23279 
+29.32% OV(ab) 8a -> 9b    0.54149 
+ 1.74% OV(ab) 8a -> 15b    0.13173 
+41.13% OO(ab) 6a -> 6b   -0.64135 
+11.78% OO(ab) 7a -> 7b    0.34328 
+ 8.88% OO(ab) 8a -> 8b    0.29807 
+Excited state 5    0.87047 eV -76.37606231 Hartree A
+CV(1): 0.178%, CO(1): 5.869%, OV(1):31.980%, OO(1):61.974%
+========================================
+95.55% OV(ab) 8a -> 11b   -0.97748 
+ 1.49% OO(ab) 6a -> 7b   -0.12224 
+ 2.39% OO(ab) 7a -> 6b   -0.15457 
+Excited state 6    1.29320 eV -76.36052753 Hartree A
+CV(1): 0.079%, CO(1): 0.056%, OV(1):95.927%, OO(1): 3.938%
+========================================
+68.19% CO(ab) 5a -> 7b    0.82579 
+ 6.06% OV(ab) 8a -> 9b   -0.24622 
+ 0.97% OV(ab) 8a -> 13b    0.09839 
+ 1.47% OV(ab) 8a -> 15b   -0.12114 
+ 0.73% OV(ab) 8a -> 16b   -0.08558 
+12.37% OO(ab) 6a -> 6b   -0.35166 
+ 8.66% OO(ab) 7a -> 7b    0.29436 
+ 0.33% OO(ab) 8a -> 8b    0.05730 
+Excited state 7    1.42490 eV -76.35568746 Hartree A
+CV(1): 0.493%, CO(1):68.266%, OV(1): 9.878%, OO(1):21.363%
+========================================
+ground energy  -76.40805164213458
+excited energy  [-6.75165622 -6.21868124 -0.13039286  0.69849709  0.87047412  1.29319704
+  1.42490188]
+method=0 (default) ALDA0, method=1 multicollinear, method=2 collinear
+Omega, alpha, hyb 0.0 0.0 0.0
+fglobal 0.3
+20
+Converged  [ True  True  True  True  True  True  True]
+molecule Ethynyl blyp scale=1
+ 0.63% OV(ab) 7a -> 9b   -0.07917 
+98.59% OO(ab) 8a -> 7b   -0.99294 
+Excited state 1   -6.75166 eV -76.65617044 Hartree A
+CV(1): 0.086%, CO(1): 0.108%, OV(1): 1.066%, OO(1):98.741%
+========================================
+ 0.33% OV(ab) 6a -> 9b    0.05767 
+ 0.28% OV(ab) 8a -> 19b   -0.05256 
+ 0.53% OO(ab) 6a -> 7b    0.07270 
+ 0.59% OO(ab) 7a -> 6b    0.07677 
+97.08% OO(ab) 8a -> 6b    0.98527 
+Excited state 2   -6.21868 eV -76.63658397 Hartree A
+CV(1): 0.036%, CO(1): 0.071%, OV(1): 1.699%, OO(1):98.194%
+========================================
+ 3.52% CO(ab) 5a -> 7b    0.18768 
+27.32% OV(ab) 8a -> 9b    0.52270 
+ 7.81% OO(ab) 6a -> 6b    0.27954 
+15.49% OO(ab) 7a -> 7b    0.39362 
+45.31% OO(ab) 8a -> 8b   -0.67316 
+Excited state 3   -0.13039 eV -76.41284349 Hartree A
+CV(1): 0.113%, CO(1): 3.624%, OV(1):27.619%, OO(1):68.644%
+========================================
+98.96% OV(ab) 8a -> 10b   -0.99481 
+ 0.40% OO(ab) 7a -> 6b    0.06330 
+Excited state 4    0.69850 eV -76.38238235 Hartree A
+CV(1): 0.064%, CO(1): 0.011%, OV(1):99.251%, OO(1): 0.675%
+========================================
+ 5.42% CO(ab) 5a -> 7b    0.23279 
+29.32% OV(ab) 8a -> 9b   -0.54149 
+ 1.74% OV(ab) 8a -> 15b   -0.13173 
+41.13% OO(ab) 6a -> 6b    0.64135 
+11.78% OO(ab) 7a -> 7b   -0.34328 
+ 8.88% OO(ab) 8a -> 8b   -0.29807 
+Excited state 5    0.87047 eV -76.37606231 Hartree A
+CV(1): 0.178%, CO(1): 5.869%, OV(1):31.980%, OO(1):61.974%
+========================================
+95.55% OV(ab) 8a -> 11b   -0.97748 
+ 1.49% OO(ab) 6a -> 7b   -0.12224 
+ 2.39% OO(ab) 7a -> 6b   -0.15457 
+Excited state 6    1.29320 eV -76.36052753 Hartree A
+CV(1): 0.079%, CO(1): 0.056%, OV(1):95.927%, OO(1): 3.938%
+========================================
+68.19% CO(ab) 5a -> 7b    0.82579 
+ 6.06% OV(ab) 8a -> 9b   -0.24622 
+ 0.97% OV(ab) 8a -> 13b    0.09839 
+ 1.47% OV(ab) 8a -> 15b   -0.12114 
+ 0.73% OV(ab) 8a -> 16b   -0.08558 
+12.37% OO(ab) 6a -> 6b   -0.35166 
+ 8.66% OO(ab) 7a -> 7b    0.29436 
+ 0.33% OO(ab) 8a -> 8b    0.05730 
+Excited state 7    1.42490 eV -76.35568746 Hartree A
+CV(1): 0.493%, CO(1):68.266%, OV(1): 9.878%, OO(1):21.363%
+========================================
+ground energy  -76.40805164213458
+excited energy  [-6.75165622 -6.21868124 -0.13039286  0.69849709  0.87047412  1.29319704
+  1.42490188]
+DONE
+Job finished at: Sat Mar 28 17:51:57 CST 2026
